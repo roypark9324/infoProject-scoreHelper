@@ -1,69 +1,118 @@
-import Image from "next/image";
+import {
+  CLEANING_THRESHOLD,
+  RISK_META,
+  getRiskLevel,
+  remainingTo,
+  type RiskLevel,
+} from "@/lib/score";
 
-export default function Home() {
+// 차시 2: 화면 뼈대 + 점수 표시 영역.
+// 아직 입력/계산 기능은 없고, 아래 값은 예시 데이터입니다.
+// 차시 3에서 입력 폼, 차시 4에서 실제 계산으로 연결합니다.
+const SAMPLE_PENALTY = 18;
+
+export default function HomePage() {
+  const penalty = SAMPLE_PENALTY;
+  const level = getRiskLevel(penalty);
+  const remaining = remainingTo(penalty, CLEANING_THRESHOLD);
+  const meta = RISK_META[level];
+  const progress = Math.min(100, Math.round((penalty / CLEANING_THRESHOLD) * 100));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="mx-auto w-full max-w-2xl px-4 py-8">
+      <header className="mb-6">
+        <h1 className="text-xl font-bold">벌점 관리 도우미</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          내가 받은 벌점을 기록에서 끝내지 않고, 원인과 상쇄 방법까지 보여 주는 서비스
+        </p>
+      </header>
+
+      {/* ── 점수 표시 영역 (요약 카드) ────────────────────────── */}
+      <section
+        aria-label="현재 상태 요약"
+        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-neutral-500">현재 누적 벌점</p>
+            <p className="mt-1 text-5xl font-extrabold tracking-tight">
+              {penalty}
+              <span className="ml-1 text-2xl font-semibold text-neutral-400">점</span>
+            </p>
+          </div>
+          <span
+            className="rounded-full px-3 py-1 text-sm font-bold"
+            style={{ color: meta.color, backgroundColor: meta.bg }}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {meta.label}
+          </span>
         </div>
-      </main>
+
+        <p className="mt-4 text-sm text-neutral-600">
+          {remaining > 0 ? (
+            <>
+              청소 기준 <b>{CLEANING_THRESHOLD}점</b>까지{" "}
+              <b className="text-neutral-900">{remaining}점</b> 남았습니다.
+            </>
+          ) : (
+            <>청소 기준 {CLEANING_THRESHOLD}점을 이미 넘었습니다.</>
+          )}
+        </p>
+
+        {/* 진행 막대 */}
+        <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${progress}%`, backgroundColor: meta.color }}
+          />
+        </div>
+
+        {/* 3단계 범례 */}
+        <ul className="mt-4 flex gap-2 text-center text-xs">
+          {(Object.keys(RISK_META) as RiskLevel[]).map((key) => {
+            const m = RISK_META[key];
+            const active = key === level;
+            return (
+              <li
+                key={key}
+                className={`flex-1 rounded-lg px-2 py-2 ${
+                  active ? "ring-2" : "opacity-60"
+                }`}
+                style={{
+                  backgroundColor: m.bg,
+                  color: m.color,
+                  ...(active ? { boxShadow: `0 0 0 2px ${m.color}` } : {}),
+                }}
+              >
+                <div className="font-bold">{m.label}</div>
+                <div className="mt-0.5">{m.range}</div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* ── 다음 차시에 채울 영역들 (뼈대만) ─────────────────── */}
+      <div className="mt-4 grid gap-4">
+        <PlaceholderCard title="사유별 벌점" note="차시 4 · 원인 분석 막대그래프" />
+        <PlaceholderCard title="월별 추세" note="차시 4 · 늘었는지 줄었는지 꺾은선" />
+        <PlaceholderCard title="기록 목록" note="차시 3 · 입력한 벌점·상점 목록" />
+      </div>
+
+      <p className="mt-8 text-center text-xs text-neutral-400">
+        2608 박종현 · 정보과학 프로젝트
+      </p>
     </div>
+  );
+}
+
+function PlaceholderCard({ title, note }: { title: string; note: string }) {
+  return (
+    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+      <h2 className="text-sm font-bold">{title}</h2>
+      <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-neutral-200 text-xs text-neutral-400">
+        {note} (준비 중)
+      </div>
+    </section>
   );
 }
