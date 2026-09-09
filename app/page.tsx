@@ -5,6 +5,7 @@ import {
   remainingTo,
   type RiskLevel,
 } from "@/lib/score";
+import RecordsSection from "./records-section";
 
 // 차시 2: 화면 뼈대 + 점수 표시 영역.
 // 아직 입력/계산 기능은 없고, 아래 값은 예시 데이터입니다.
@@ -92,11 +93,15 @@ export default function HomePage() {
         </ul>
       </section>
 
+      {/* ── 차시 3: 기록 입력 폼 + 입력값 검사 + 기록 목록 ───── */}
+      <div className="mt-4">
+        <RecordsSection />
+      </div>
+
       {/* ── 다음 차시에 채울 영역들 (뼈대만) ─────────────────── */}
       <div className="mt-4 grid gap-4">
         <PlaceholderCard title="사유별 벌점" note="차시 4 · 원인 분석 막대그래프" />
         <PlaceholderCard title="월별 추세" note="차시 4 · 늘었는지 줄었는지 꺾은선" />
-        <PlaceholderCard title="기록 목록" note="차시 3 · 입력한 벌점·상점 목록" />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">
