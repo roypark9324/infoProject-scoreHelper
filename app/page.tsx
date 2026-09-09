@@ -6,20 +6,22 @@ import {
   type RiskLevel,
 } from "@/lib/score";
 import RecordsSection from "./records-section";
+import AuthGate from "./auth-gate";
 
 // 차시 2: 화면 뼈대 + 점수 표시 영역.
-// 아직 입력/계산 기능은 없고, 아래 값은 예시 데이터입니다.
-// 차시 3에서 입력 폼, 차시 4에서 실제 계산으로 연결합니다.
-const SAMPLE_PENALTY = 18;
+// 누적 점수는 차시 4에서 "입력한 기록"으로 실제 계산합니다.
+// 그 전까지는 0점(빈 상태)으로 둡니다. (예전의 예시 18점은 제거)
+const INITIAL_PENALTY = 0;
 
 export default function HomePage() {
-  const penalty = SAMPLE_PENALTY;
+  const penalty = INITIAL_PENALTY;
   const level = getRiskLevel(penalty);
   const remaining = remainingTo(penalty, CLEANING_THRESHOLD);
   const meta = RISK_META[level];
   const progress = Math.min(100, Math.round((penalty / CLEANING_THRESHOLD) * 100));
 
   return (
+    <AuthGate>
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <header className="mb-6">
         <h1 className="text-xl font-bold">벌점 관리 도우미</h1>
@@ -108,6 +110,7 @@ export default function HomePage() {
         2608 박종현 · 정보과학 프로젝트
       </p>
     </div>
+    </AuthGate>
   );
 }
 
