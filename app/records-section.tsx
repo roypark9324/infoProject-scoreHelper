@@ -3,6 +3,8 @@
 // 차시 3: 기록 입력 폼 + 입력값 검사 + 입력한 기록 목록
 // - 사유를 고르면 기본 배점이 점수 칸에 자동 입력된다.
 // - 저장하기를 누르면 검사(validateDraft)를 먼저 하고, 통과할 때만 목록에 추가한다.
+// - 차시 4: 기록 배열은 page.tsx가 들고 있고, 이 컴포넌트는 추가·삭제만 알려 준다.
+//   (요약 카드·원인 분석도 같은 기록으로 계산해야 하기 때문)
 // - 지금은 화면 state에만 담는다. (새로고침하면 사라짐 → 차시 7에서 DB로)
 
 import { useState } from "react";
@@ -23,10 +25,15 @@ const EMPTY_DRAFT: RecordDraft = {
   memo: "",
 };
 
-export default function RecordsSection() {
+interface Props {
+  records: ScoreRecord[];
+  onAdd: (record: ScoreRecord) => void;
+  onDelete: (id: string) => void;
+}
+
+export default function RecordsSection({ records, onAdd, onDelete }: Props) {
   const [draft, setDraft] = useState<RecordDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<string[]>([]);
-  const [records, setRecords] = useState<ScoreRecord[]>([]);
 
   // 선택한 구분(벌점/상점)에 맞는 사유만 보여 준다.
   const reasonOptions = REASONS.filter((r) => r.kind === draft.kind);
@@ -59,14 +66,10 @@ export default function RecordsSection() {
     }
     const reason = getReason(draft.reasonId);
     const record = draftToRecord(draft, reason?.label ?? "기타");
-    setRecords((prev) => [record, ...prev]);
+    onAdd(record);
     setErrors([]);
     // 날짜·구분은 유지하고 사유·점수·메모만 비운다 (연속 입력 편하게).
     setDraft((prev) => ({ ...prev, reasonId: "", points: "", memo: "" }));
-  }
-
-  function handleDelete(id: string) {
-    setRecords((prev) => prev.filter((r) => r.id !== id));
   }
 
   return (
@@ -220,7 +223,7 @@ export default function RecordsSection() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleDelete(r.id)}
+                    onClick={() => onDelete(r.id)}
                     className="shrink-0 rounded px-1.5 py-0.5 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
                     aria-label="이 기록 삭제"
                   >

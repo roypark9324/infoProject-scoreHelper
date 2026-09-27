@@ -1,20 +1,27 @@
+"use client";
+
+import { useState } from "react";
 import {
   CLEANING_THRESHOLD,
   RISK_META,
+  calcTotals,
   getRiskLevel,
   remainingTo,
   type RiskLevel,
 } from "@/lib/score";
+import type { ScoreRecord } from "@/lib/records";
 import RecordsSection from "./records-section";
+import CauseAnalysis from "./cause-analysis";
 import AuthGate from "./auth-gate";
 
 // 차시 2: 화면 뼈대 + 점수 표시 영역.
-// 누적 점수는 차시 4에서 "입력한 기록"으로 실제 계산합니다.
-// 그 전까지는 0점(빈 상태)으로 둡니다. (예전의 예시 18점은 제거)
-const INITIAL_PENALTY = 0;
+// 차시 4: 입력한 기록(records)으로 누적 벌점을 실제 계산하고, 원인 분석을 보여 준다.
 
 export default function HomePage() {
-  const penalty = INITIAL_PENALTY;
+  const [records, setRecords] = useState<ScoreRecord[]>([]);
+
+  const totals = calcTotals(records);
+  const penalty = totals.net;
   const level = getRiskLevel(penalty);
   const remaining = remainingTo(penalty, CLEANING_THRESHOLD);
   const meta = RISK_META[level];
@@ -61,6 +68,10 @@ export default function HomePage() {
             <>청소 기준 {CLEANING_THRESHOLD}점을 이미 넘었습니다.</>
           )}
         </p>
+        <p className="mt-1 text-xs text-neutral-400">
+          받은 벌점 <span className="text-red-600">{totals.penaltySum}점</span> − 상점(감면){" "}
+          <span className="text-blue-600">{totals.meritSum}점</span>
+        </p>
 
         {/* 진행 막대 */}
         <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-neutral-100">
@@ -97,13 +108,21 @@ export default function HomePage() {
 
       {/* ── 차시 3: 기록 입력 폼 + 입력값 검사 + 기록 목록 ───── */}
       <div className="mt-4">
-        <RecordsSection />
+        <RecordsSection
+          records={records}
+          onAdd={(record) => setRecords((prev) => [record, ...prev])}
+          onDelete={(id) => setRecords((prev) => prev.filter((r) => r.id !== id))}
+        />
       </div>
 
-      {/* ── 다음 차시에 채울 영역들 (뼈대만) ─────────────────── */}
+      {/* ── 차시 4: 원인 분석 (사유별 막대그래프 + 상위 3개) ──── */}
+      <div className="mt-4">
+        <CauseAnalysis records={records} />
+      </div>
+
+      {/* ── 다음 차시에 채울 영역 (뼈대만) ───────────────────── */}
       <div className="mt-4 grid gap-4">
-        <PlaceholderCard title="사유별 벌점" note="차시 4 · 원인 분석 막대그래프" />
-        <PlaceholderCard title="월별 추세" note="차시 4 · 늘었는지 줄었는지 꺾은선" />
+        <PlaceholderCard title="월별 추세" note="차시 5 · 늘었는지 줄었는지 꺾은선" />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">
