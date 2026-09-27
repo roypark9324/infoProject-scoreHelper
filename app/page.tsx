@@ -3,24 +3,40 @@
 import { useState } from "react";
 import {
   CLEANING_THRESHOLD,
+  PERIOD_LABEL,
   RISK_META,
   calcTotals,
+  filterByPeriod,
   getRiskLevel,
   remainingTo,
+  type Period,
   type RiskLevel,
 } from "@/lib/score";
 import type { ScoreRecord } from "@/lib/records";
 import RecordsSection from "./records-section";
 import CauseAnalysis from "./cause-analysis";
+import TrendChart from "./trend-chart";
+import OffsetPlan from "./offset-plan";
 import AuthGate from "./auth-gate";
 
 // 차시 2: 화면 뼈대 + 점수 표시 영역.
 // 차시 4: 입력한 기록(records)으로 누적 벌점을 실제 계산하고, 원인 분석을 보여 준다.
+// 차시 5: 조회 기간 선택, 월별 추세, 상쇄 계획을 더해 결과 화면을 완성한다.
+
+/** 목표 점수 기본값 = '안전' 단계의 상한 */
+const DEFAULT_TARGET = 10;
 
 export default function HomePage() {
   const [records, setRecords] = useState<ScoreRecord[]>([]);
+  const [period, setPeriod] = useState<Period>("semester");
+  const [target, setTarget] = useState(DEFAULT_TARGET);
 
-  const totals = calcTotals(records);
+  // 요약·원인 분석·상쇄 계획은 선택한 기간의 기록으로 계산한다.
+  const periodRecords = filterByPeriod(records, period);
+  // 감면 한도(학기당 20점)는 기간 선택과 상관없이 이번 학기 기준.
+  const semesterMeritSum = calcTotals(filterByPeriod(records, "semester")).meritSum;
+
+  const totals = calcTotals(periodRecords);
   const penalty = totals.net;
   const level = getRiskLevel(penalty);
   const remaining = remainingTo(penalty, CLEANING_THRESHOLD);
@@ -36,6 +52,26 @@ export default function HomePage() {
           내가 받은 벌점을 기록에서 끝내지 않고, 원인과 상쇄 방법까지 보여 주는 서비스
         </p>
       </header>
+
+      {/* ── 차시 5: 조회 기간 선택 ───────────────────────────── */}
+      <div className="mb-3 flex items-center gap-2" role="group" aria-label="조회 기간">
+        <span className="text-xs text-neutral-500">조회 기간</span>
+        {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPeriod(p)}
+            aria-pressed={period === p}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              period === p
+                ? "bg-neutral-900 text-white"
+                : "bg-white text-neutral-500 ring-1 ring-neutral-200 hover:text-neutral-800"
+            }`}
+          >
+            {PERIOD_LABEL[p]}
+          </button>
+        ))}
+      </div>
 
       {/* ── 점수 표시 영역 (요약 카드) ────────────────────────── */}
       <section
@@ -115,14 +151,17 @@ export default function HomePage() {
         />
       </div>
 
-      {/* ── 차시 4: 원인 분석 (사유별 막대그래프 + 상위 3개) ──── */}
-      <div className="mt-4">
-        <CauseAnalysis records={records} />
-      </div>
-
-      {/* ── 다음 차시에 채울 영역 (뼈대만) ───────────────────── */}
+      {/* ── 결과 화면: 원인 분석(차시 4) + 상쇄 계획·월별 추세(차시 5) ── */}
       <div className="mt-4 grid gap-4">
-        <PlaceholderCard title="월별 추세" note="차시 5 · 늘었는지 줄었는지 꺾은선" />
+        <CauseAnalysis records={periodRecords} />
+        <OffsetPlan
+          net={penalty}
+          target={target}
+          onTargetChange={setTarget}
+          semesterMeritSum={semesterMeritSum}
+        />
+        {/* 추세는 기간 선택과 상관없이 최근 6개월을 보여 준다 */}
+        <TrendChart records={records} />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">
@@ -130,16 +169,5 @@ export default function HomePage() {
       </p>
     </div>
     </AuthGate>
-  );
-}
-
-function PlaceholderCard({ title, note }: { title: string; note: string }) {
-  return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-      <h2 className="text-sm font-bold">{title}</h2>
-      <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-neutral-200 text-xs text-neutral-400">
-        {note} (준비 중)
-      </div>
-    </section>
   );
 }

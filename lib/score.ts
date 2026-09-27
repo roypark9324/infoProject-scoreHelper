@@ -1,7 +1,9 @@
 // 벌점 관리 도우미 - 점수 계산 규칙 (IPO의 '처리' 부분)
 // 차시 4: 실제 기록 배열을 받아 누적 벌점과 원인 분석을 계산한다.
+// 차시 5: 조회 기간 필터, 월별 추세, 상쇄 계획 계산을 추가한다.
 
 import type { ScoreRecord } from "./records";
+import { REASONS, type Reason } from "./reasons";
 
 /** 청소 대상이 되는 누적 벌점 기준선 */
 export const CLEANING_THRESHOLD = 30;
@@ -88,4 +90,109 @@ export function analyzeCauses(records: ScoreRecord[]): CauseStat[] {
 /** 자주 걸리는 원인 상위 N개 (기본 3개) */
 export function topCauses(records: ScoreRecord[], n = 3): CauseStat[] {
   return analyzeCauses(records).slice(0, n);
+}
+
+// ── 입력 4: 조회 기간 ──────────────────────────────────
+
+export type Period = "month" | "3months" | "semester";
+
+export const PERIOD_LABEL: Record<Period, string> = {
+  month: "이번 달",
+  "3months": "최근 3개월",
+  semester: "학기 전체",
+};
+
+/** Date → YYYY-MM-DD (records.date와 같은 형식이라 문자열로 크기 비교가 된다) */
+function toISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** 기간이 시작되는 날짜 (YYYY-MM-DD). 1학기는 3월 1일, 2학기는 8월 1일부터로 본다. */
+export function periodStart(period: Period, today = new Date()): string {
+  const y = today.getFullYear();
+  const m = today.getMonth(); // 0 = 1월
+  if (period === "month") return toISO(new Date(y, m, 1));
+  if (period === "3months") return toISO(new Date(y, m - 2, 1));
+  if (m >= 7) return `${y}-08-01`;
+  if (m >= 2) return `${y}-03-01`;
+  return `${y - 1}-08-01`;
+}
+
+/** 선택한 기간 안의 기록만 남긴다 */
+export function filterByPeriod(records: ScoreRecord[], period: Period, today = new Date()) {
+  const start = periodStart(period, today);
+  return records.filter((r) => r.date >= start);
+}
+
+// ── 처리 4: 월별 추세 ──────────────────────────────────
+
+export interface MonthStat {
+  /** YYYY-MM */
+  month: string;
+  /** 화면용 이름 (예: "9월") */
+  label: string;
+  penaltySum: number;
+  meritSum: number;
+}
+
+/** 이번 달을 포함한 최근 N개월의 월별 벌점·상점 합계 (기록이 없는 달은 0) */
+export function monthlyTrend(records: ScoreRecord[], months = 6, today = new Date()): MonthStat[] {
+  const stats: MonthStat[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    stats.push({
+      month: toISO(d).slice(0, 7),
+      label: `${d.getMonth() + 1}월`,
+      penaltySum: 0,
+      meritSum: 0,
+    });
+  }
+  const byMonth = new Map(stats.map((s) => [s.month, s]));
+  for (const r of records) {
+    const s = byMonth.get(r.date.slice(0, 7));
+    if (!s) continue;
+    if (r.kind === "penalty") s.penaltySum += r.points;
+    else s.meritSum += r.points;
+  }
+  return stats;
+}
+
+// ── 처리 5: 상쇄 계획 ──────────────────────────────────
+
+/** 학교 규정: 봉사활동 감면은 학기당 최대 20점 */
+export const MERIT_LIMIT_PER_SEMESTER = 20;
+
+export interface OffsetOption {
+  reason: Reason;
+  /** 이 활동을 몇 번 해야 하는지 */
+  times: number;
+  /** times번 했을 때 받는 상점 합계 */
+  points: number;
+}
+
+export interface OffsetPlan {
+  /** 목표 점수까지 줄여야 하는 점수 (0이면 이미 목표 달성) */
+  need: number;
+  /** 이번 학기에 더 받을 수 있는 감면 점수 */
+  meritLeft: number;
+  /** 활동별로 몇 번 해야 하는지 (횟수가 적은 순, 같으면 필요한 점수에 딱 맞는 순) */
+  options: OffsetOption[];
+}
+
+/**
+ * 현재 누적 벌점을 목표 점수까지 내리려면 상점 활동을 몇 번 해야 하는지 계산.
+ * 필요한 점수 ÷ 활동 배점을 올림해서 횟수를 구한다.
+ */
+export function calcOffsetPlan(net: number, target: number, semesterMeritSum: number): OffsetPlan {
+  const need = Math.max(0, net - target);
+  const meritLeft = Math.max(0, MERIT_LIMIT_PER_SEMESTER - semesterMeritSum);
+  const options = REASONS.filter((r) => r.kind === "merit")
+    .map((reason) => {
+      const times = Math.ceil(need / reason.points);
+      return { reason, times, points: times * reason.points };
+    })
+    .sort((a, b) => a.times - b.times || a.points - b.points);
+  return { need, meritLeft, options };
 }
