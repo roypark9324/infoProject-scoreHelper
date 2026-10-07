@@ -13,6 +13,7 @@ import {
   type RiskLevel,
 } from "@/lib/score";
 import type { ScoreRecord } from "@/lib/records";
+import type { MeritActivity } from "@/lib/reasons";
 import RecordsSection from "./records-section";
 import CauseAnalysis from "./cause-analysis";
 import TrendChart from "./trend-chart";
@@ -27,14 +28,16 @@ import AuthGate from "./auth-gate";
 const DEFAULT_TARGET = 10;
 
 export default function HomePage() {
+  // 기록·모집 활동은 로그인 기능(6차시)과 DB 저장(7차시) 전까지 비어 있는 상태로 시작한다.
   const [records, setRecords] = useState<ScoreRecord[]>([]);
-  const [period, setPeriod] = useState<Period>("semester");
+  const [activities, setActivities] = useState<MeritActivity[]>([]);
+  const [period, setPeriod] = useState<Period>("year");
   const [target, setTarget] = useState(DEFAULT_TARGET);
 
   // 요약·원인 분석·상쇄 계획은 선택한 기간의 기록으로 계산한다.
   const periodRecords = filterByPeriod(records, period);
-  // 감면 한도(학기당 20점)는 기간 선택과 상관없이 이번 학기 기준.
-  const semesterMeritSum = calcTotals(filterByPeriod(records, "semester")).meritSum;
+  // 학년이 끝나면 벌점 내역이 초기화되므로, 추세도 이번 학년 기록만 쓴다.
+  const yearRecords = filterByPeriod(records, "year");
 
   const totals = calcTotals(periodRecords);
   const penalty = totals.net;
@@ -148,6 +151,9 @@ export default function HomePage() {
           records={records}
           onAdd={(record) => setRecords((prev) => [record, ...prev])}
           onDelete={(id) => setRecords((prev) => prev.filter((r) => r.id !== id))}
+          activities={activities}
+          onAddActivity={(a) => setActivities((prev) => [...prev, a])}
+          onDeleteActivity={(id) => setActivities((prev) => prev.filter((a) => a.id !== id))}
         />
       </div>
 
@@ -158,10 +164,10 @@ export default function HomePage() {
           net={penalty}
           target={target}
           onTargetChange={setTarget}
-          semesterMeritSum={semesterMeritSum}
+          activities={activities}
         />
-        {/* 추세는 기간 선택과 상관없이 최근 6개월을 보여 준다 */}
-        <TrendChart records={records} />
+        {/* 추세는 기간 선택과 상관없이 최근 6개월(이번 학년 안)을 보여 준다 */}
+        <TrendChart records={yearRecords} />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">

@@ -1,20 +1,20 @@
 // 차시 5: 상쇄 계획 (IPO의 '입력 3 목표 점수 · 처리 5 · 출력 5')
-// - 목표 점수까지 줄여야 할 점수를 구하고, 봉사활동 배점으로 나눠 몇 번 해야 하는지 문장으로 보여 준다.
-// - 학교 규정상 감면은 학기당 20점까지라서, 남은 한도보다 많이 필요하면 따로 알려 준다.
+// - 목표 점수까지 줄여야 할 점수를 구하고, 등록해 둔 모집 활동의 배점으로 나눠
+//   어떤 활동을 몇 번 해야 하는지 문장으로 보여 준다.
 
-import { MERIT_LIMIT_PER_SEMESTER, calcOffsetPlan } from "@/lib/score";
+import { calcOffsetPlan } from "@/lib/score";
+import type { MeritActivity } from "@/lib/reasons";
 
 interface Props {
   net: number;
   target: number;
   onTargetChange: (target: number) => void;
-  semesterMeritSum: number;
+  activities: MeritActivity[];
 }
 
-export default function OffsetPlan({ net, target, onTargetChange, semesterMeritSum }: Props) {
-  const plan = calcOffsetPlan(net, target, semesterMeritSum);
+export default function OffsetPlan({ net, target, onTargetChange, activities }: Props) {
+  const plan = calcOffsetPlan(net, target, activities);
   const [best, ...others] = plan.options;
-  const overLimit = plan.need > plan.meritLeft;
 
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
@@ -42,31 +42,29 @@ export default function OffsetPlan({ net, target, onTargetChange, semesterMeritS
         <p className="mt-3 rounded-xl bg-green-50 px-3 py-3 text-sm text-green-800">
           현재 누적 벌점 {net}점으로 이미 목표({target}점) 이하입니다. 지금처럼 유지하세요!
         </p>
+      ) : !best ? (
+        <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-3 text-sm text-neutral-600">
+          목표 {target}점까지 <b>{plan.need}점</b>을 줄여야 합니다. 선생님이 모집하는 상점 활동을
+          &apos;기록 입력 &gt; 상점&apos;에서 등록하면, 어떤 활동을 몇 번 해야 하는지 알려 드려요.
+        </p>
       ) : (
         <>
           <p className="mt-3 rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-900">
             목표 {target}점까지 <b>{plan.need}점</b>을 줄여야 합니다.{" "}
             <b>
-              {best.reason.label} {best.times}회(상점 {best.points}점)
+              {best.activity.name} {best.times}회(상점 {best.points}점)
             </b>
             를 하면 목표 점수까지 내려갑니다.
           </p>
 
           <ul className="mt-3 grid gap-1 text-sm text-neutral-600">
             {others.map((o) => (
-              <li key={o.reason.id}>
-                · 또는 {o.reason.label} <b className="text-neutral-900">{o.times}회</b>
+              <li key={o.activity.id}>
+                · 또는 {o.activity.name} <b className="text-neutral-900">{o.times}회</b>
                 <span className="text-neutral-400"> (상점 {o.points}점)</span>
               </li>
             ))}
           </ul>
-
-          {overLimit && (
-            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              ⚠ 봉사활동 감면은 학기당 {MERIT_LIMIT_PER_SEMESTER}점까지라서 이번 학기에는{" "}
-              {plan.meritLeft}점만 더 줄일 수 있습니다. 새 벌점을 받지 않는 것이 먼저예요.
-            </p>
-          )}
         </>
       )}
     </section>

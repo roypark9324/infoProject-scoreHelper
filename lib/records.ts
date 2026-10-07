@@ -1,7 +1,7 @@
 // 벌점 관리 도우미 - 기록(records) 타입과 입력값 검사 (IPO의 '입력' + '처리 6')
 // 차시 3: 화면 state 배열에만 담는다. 차시 7에서 Supabase 저장으로 확장.
 
-import type { ReasonKind } from "./reasons";
+import type { MeritActivity, ReasonKind } from "./reasons";
 
 /** 저장된 기록 1건 */
 export interface ScoreRecord {
@@ -54,16 +54,40 @@ export function validateDraft(draft: RecordDraft): string[] {
     errors.push("사유를 선택하세요.");
   }
 
-  const n = Number(draft.points);
-  if (draft.points.trim() === "" || Number.isNaN(n)) {
-    errors.push("점수는 숫자로 입력하세요.");
-  } else if (n <= 0) {
-    errors.push("점수는 1점 이상이어야 합니다.");
-  } else if (!Number.isInteger(n)) {
-    errors.push("점수는 정수로 입력하세요.");
-  }
+  const pointsError = validatePoints(draft.points);
+  if (pointsError) errors.push(pointsError);
 
   return errors;
+}
+
+/** 점수 칸 검사 (벌점·상점 기록, 활동 등록이 함께 쓴다). 문제가 없으면 null. */
+function validatePoints(points: string): string | null {
+  const n = Number(points);
+  if (points.trim() === "" || Number.isNaN(n)) return "점수는 숫자로 입력하세요.";
+  if (n <= 0) return "점수는 0보다 커야 합니다.";
+  if (!Number.isInteger(n * 2)) return "점수는 0.5점 단위로 입력하세요.";
+  return null;
+}
+
+/** 모집 활동 등록 폼 값 검사. 문제가 없으면 빈 배열. */
+export function validateActivity(name: string, points: string): string[] {
+  const errors: string[] = [];
+  if (name.trim() === "") errors.push("활동 이름을 입력하세요.");
+  const pointsError = validatePoints(points);
+  if (pointsError) errors.push(pointsError);
+  return errors;
+}
+
+/** 검사를 통과한 값으로 모집 활동 만들기 */
+export function makeActivity(name: string, points: string): MeritActivity {
+  return {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : String(Date.now() + Math.random()),
+    name: name.trim(),
+    points: Number(points),
+  };
 }
 
 /** 검사를 통과한 draft를 저장용 기록으로 변환 */

@@ -8,10 +8,18 @@
 // - 지금은 화면 state에만 담는다. (새로고침하면 사라짐 → 차시 7에서 DB로)
 
 import { useState } from "react";
-import { KIND_LABEL, REASONS, getReason, type ReasonKind } from "@/lib/reasons";
+import {
+  KIND_LABEL,
+  REASONS,
+  getReason,
+  type MeritActivity,
+  type ReasonKind,
+} from "@/lib/reasons";
 import {
   draftToRecord,
+  makeActivity,
   todayISO,
+  validateActivity,
   validateDraft,
   type RecordDraft,
   type ScoreRecord,
@@ -29,14 +37,41 @@ interface Props {
   records: ScoreRecord[];
   onAdd: (record: ScoreRecord) => void;
   onDelete: (id: string) => void;
+  /** 선생님이 모집한 상점 활동 목록 (상점 기록의 사유가 된다) */
+  activities: MeritActivity[];
+  onAddActivity: (activity: MeritActivity) => void;
+  onDeleteActivity: (id: string) => void;
 }
 
-export default function RecordsSection({ records, onAdd, onDelete }: Props) {
+export default function RecordsSection({
+  records,
+  onAdd,
+  onDelete,
+  activities,
+  onAddActivity,
+  onDeleteActivity,
+}: Props) {
   const [draft, setDraft] = useState<RecordDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<string[]>([]);
+  // 모집 활동 등록 칸
+  const [activityName, setActivityName] = useState("");
+  const [activityPoints, setActivityPoints] = useState("");
+  const [activityErrors, setActivityErrors] = useState<string[]>([]);
 
-  // 선택한 구분(벌점/상점)에 맞는 사유만 보여 준다.
-  const reasonOptions = REASONS.filter((r) => r.kind === draft.kind);
+  const isMerit = draft.kind === "merit";
+  // 벌점은 기준표에서, 상점은 등록한 모집 활동에서 고른다.
+  const options = isMerit
+    ? activities.map((a) => ({ id: a.id, text: `${a.name} (${a.points}점)` }))
+    : REASONS.map((r) => ({ id: r.id, text: `${r.label} (${r.category} · 기준 ${r.points}점)` }));
+
+  /** 선택한 사유(벌점 기준표 항목 또는 모집 활동)의 이름·기본 배점 */
+  function findReason(kind: ReasonKind, id: string): { label: string; points: number } | undefined {
+    if (kind === "merit") {
+      const a = activities.find((x) => x.id === id);
+      return a && { label: a.name, points: a.points };
+    }
+    return getReason(id);
+  }
 
   function update<K extends keyof RecordDraft>(key: K, value: RecordDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -49,12 +84,25 @@ export default function RecordsSection({ records, onAdd, onDelete }: Props) {
 
   // 사유를 고르면 기본 배점을 점수 칸에 자동으로 채운다.
   function handleReasonChange(reasonId: string) {
-    const reason = getReason(reasonId);
+    const reason = findReason(draft.kind, reasonId);
     setDraft((prev) => ({
       ...prev,
       reasonId,
       points: reason ? String(reason.points) : "",
     }));
+  }
+
+  // 모집 활동 등록: 검사를 통과하면 목록에 추가하고 칸을 비운다.
+  function handleAddActivity() {
+    const found = validateActivity(activityName, activityPoints);
+    if (found.length > 0) {
+      setActivityErrors(found);
+      return;
+    }
+    onAddActivity(makeActivity(activityName, activityPoints));
+    setActivityErrors([]);
+    setActivityName("");
+    setActivityPoints("");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -64,7 +112,7 @@ export default function RecordsSection({ records, onAdd, onDelete }: Props) {
       setErrors(found);
       return;
     }
-    const reason = getReason(draft.reasonId);
+    const reason = findReason(draft.kind, draft.reasonId);
     const record = draftToRecord(draft, reason?.label ?? "기타");
     onAdd(record);
     setErrors([]);
@@ -77,6 +125,7 @@ export default function RecordsSection({ records, onAdd, onDelete }: Props) {
       <h2 className="text-sm font-bold">기록 입력</h2>
       <p className="mt-1 text-xs text-neutral-500">
         받은 벌점·상점을 한 건씩 입력하세요. 사유를 고르면 기준 점수가 자동으로 채워집니다.
+        상점은 선생님이 모집한 활동을 먼저 등록한 뒤 골라서 기록해요.
       </p>
 
       {/* ── 입력 폼 ─────────────────────────────── */}
@@ -117,18 +166,101 @@ export default function RecordsSection({ records, onAdd, onDelete }: Props) {
           />
         </label>
 
+        {/* 상점: 선생님이 모집한 활동 등록 */}
+        {isMerit && (
+          <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+            <span className="text-xs font-semibold text-blue-700">모집 활동 등록</span>
+            <p className="text-xs text-neutral-500">
+              선생님이 &quot;이 활동을 하면 상점 줄게&quot; 하고 모집한 활동을 이름과 점수로 등록해
+              두세요. 등록하면 아래 사유 목록에서 고를 수 있어요.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={activityName}
+                maxLength={40}
+                placeholder="활동 이름 (예: 도서관 정리 돕기)"
+                onChange={(e) => setActivityName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddActivity();
+                  }
+                }}
+                className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0.5}
+                step={0.5}
+                value={activityPoints}
+                placeholder="점수"
+                onChange={(e) => setActivityPoints(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddActivity();
+                  }
+                }}
+                className="w-20 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleAddActivity}
+                className="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                활동 등록
+              </button>
+            </div>
+            {activityErrors.length > 0 && (
+              <ul className="text-xs text-red-700">
+                {activityErrors.map((msg) => (
+                  <li key={msg}>• {msg}</li>
+                ))}
+              </ul>
+            )}
+            {activities.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {activities.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs text-blue-700 ring-1 ring-blue-200"
+                  >
+                    {a.name} · {a.points}점
+                    <button
+                      type="button"
+                      onClick={() => onDeleteActivity(a.id)}
+                      className="text-neutral-400 hover:text-neutral-700"
+                      aria-label={`${a.name} 활동 삭제`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* 사유 */}
         <label className="grid gap-1 text-sm">
-          <span className="font-medium text-neutral-700">사유</span>
+          <span className="font-medium text-neutral-700">{isMerit ? "한 활동" : "사유"}</span>
           <select
             value={draft.reasonId}
             onChange={(e) => handleReasonChange(e.target.value)}
             className="rounded-lg border border-neutral-200 bg-white px-3 py-2"
           >
-            <option value="">사유를 선택하세요</option>
-            {reasonOptions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label} ({r.category} · 기준 {r.points}점)
+            <option value="">
+              {isMerit && activities.length === 0
+                ? "먼저 위에서 모집 활동을 등록하세요"
+                : isMerit
+                  ? "한 활동을 선택하세요"
+                  : "사유를 선택하세요"}
+            </option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.text}
               </option>
             ))}
           </select>
@@ -139,9 +271,9 @@ export default function RecordsSection({ records, onAdd, onDelete }: Props) {
           <span className="font-medium text-neutral-700">점수</span>
           <input
             type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
+            inputMode="decimal"
+            min={0.5}
+            step={0.5}
             placeholder="사유를 고르면 자동 입력됩니다"
             value={draft.points}
             onChange={(e) => update("points", e.target.value)}
