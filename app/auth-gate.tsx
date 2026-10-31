@@ -3,24 +3,25 @@
 // 로그인 여부에 따라 화면을 잠그는 껍데기.
 // - 로그인 안 됨: "로그인 후 이용 가능합니다" 카드 → 누르면 /login 으로 이동
 // - 로그인 됨: 원래 화면(children) + 로그아웃 버튼
-// ⚠️ 실제 Google 계정 인증은 6차시(Supabase Auth)에서 붙입니다. 지금은 임시 상태입니다.
+// 로그인 상태는 Supabase Auth(Google 로그인)가 관리한다. (차시 6)
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isLoggedIn, signOut } from "@/lib/auth-stub";
+import { signOut, watchSession } from "@/lib/auth";
 
 type Phase = "loading" | "in" | "out";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const sync = () => setPhase(isLoggedIn() ? "in" : "out");
-    sync();
-    // 다른 탭에서 로그인/로그아웃하면 이 화면도 따라 바뀌도록
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
+    // 로그인·로그아웃·다른 탭의 변화가 있을 때마다 화면이 따라 바뀐다.
+    return watchSession((session) => {
+      setEmail(session?.user.email ?? null);
+      setPhase(session ? "in" : "out");
+    });
   }, []);
 
   if (phase === "loading") {
@@ -58,13 +59,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-2xl items-center justify-end px-4 pt-4">
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-4 pt-4">
+        {email && <span className="text-xs text-neutral-400">{email}</span>}
         <button
           type="button"
-          onClick={() => {
-            signOut();
-            setPhase("out");
-          }}
+          onClick={() => signOut()}
           className="rounded-lg px-3 py-1.5 text-xs font-semibold text-neutral-500 hover:bg-neutral-100"
         >
           로그아웃

@@ -1,18 +1,26 @@
 "use client";
 
-// 로그인 화면.
-// ⚠️ 지금 "Google로 로그인" 버튼은 임시입니다 — 실제 Google 계정 인증 없이
-//    로그인 상태 표시만 저장합니다. 6차시에서 Supabase Auth의 Google 로그인으로 교체합니다.
+// 로그인 화면. "Google로 로그인"을 누르면 Supabase Auth가 Google 계정 선택 화면으로 보내고,
+// 인증이 끝나면 첫 화면(/)으로 돌아온다. (차시 6)
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "@/lib/auth-stub";
+import { signInWithGoogle } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleGoogleLogin() {
-    signIn();
-    router.push("/");
+  async function handleGoogleLogin() {
+    setBusy(true);
+    setError(null);
+    const result = await signInWithGoogle();
+    // 성공하면 Google 화면으로 이동하므로 여기까지 돌아오는 건 실패했을 때뿐이다.
+    if (result.error) {
+      setError(result.error);
+      setBusy(false);
+    }
   }
 
   return (
@@ -23,14 +31,17 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-bold shadow-sm hover:bg-neutral-50"
+        disabled={busy}
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-bold shadow-sm hover:bg-neutral-50 disabled:opacity-60"
       >
-        Google로 로그인
+        {busy ? "Google로 이동 중…" : "Google로 로그인"}
       </button>
 
-      <p className="mt-4 text-xs text-neutral-400">
-        지금은 임시 로그인입니다. 6차시에서 실제 Google 계정 연동으로 바뀝니다.
-      </p>
+      {error && (
+        <p role="alert" className="mt-4 text-xs text-red-600">
+          로그인에 실패했습니다: {error}
+        </p>
+      )}
 
       <button
         type="button"
