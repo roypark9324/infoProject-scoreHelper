@@ -18,6 +18,7 @@ import RecordsSection from "./records-section";
 import CauseAnalysis from "./cause-analysis";
 import TrendChart from "./trend-chart";
 import OffsetPlan from "./offset-plan";
+import BoardSection from "./board-section";
 import ConnectionStatus from "./connection-status";
 import {
   deleteActivity,
@@ -35,6 +36,7 @@ import {
 // 차시 5: 조회 기간 선택, 월별 추세, 상쇄 계획을 더해 결과 화면을 완성한다.
 // 차시 7: 기록·모집 활동·목표 점수를 Supabase DB에 저장한다.
 // 차시 8: 로그인하면 저장된 기록을 불러와 같은 통계로 보여 준다.
+// 이후: 선생님이 올린 상점 모집 글(게시판)에 학생이 신청하고, 인정되면 상점 기록이 자동으로 들어온다.
 
 /** 목표 점수 기본값 = '안전' 단계의 상한 */
 const DEFAULT_TARGET = 10;
@@ -46,6 +48,8 @@ function errorMessage(e: unknown): string {
 export default function Dashboard() {
   const [records, setRecords] = useState<ScoreRecord[]>([]);
   const [activities, setActivities] = useState<MeritActivity[]>([]);
+  // 게시판에서 모집 중인 활동. 상쇄 계획에서 내가 등록한 활동과 함께 쓴다.
+  const [boardActivities, setBoardActivities] = useState<MeritActivity[]>([]);
   const [period, setPeriod] = useState<Period>("year");
   const [target, setTarget] = useState(DEFAULT_TARGET);
   const [loading, setLoading] = useState(true);
@@ -77,6 +81,12 @@ export default function Dashboard() {
       setDbError(errorMessage(e));
     }
   }
+
+  // 선생님이 인정해 준 상점이 목록에 나타나도록 기록을 다시 불러온다.
+  const refreshRecords = () =>
+    run(async () => {
+      setRecords(await fetchRecords());
+    });
 
   const handleAddRecord = (record: ScoreRecord) =>
     run(async () => {
@@ -232,6 +242,11 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* ── 상점 모집 게시판: 선생님이 모집 → 학생 신청 → 선생님 인정 ── */}
+      <div className="mt-4">
+        <BoardSection onOpenPosts={setBoardActivities} onRefreshRecords={refreshRecords} />
+      </div>
+
       {/* ── 결과 화면: 원인 분석(차시 4) + 상쇄 계획·월별 추세(차시 5) ── */}
       <div className="mt-4 grid gap-4">
         <CauseAnalysis records={periodRecords} />
@@ -239,7 +254,7 @@ export default function Dashboard() {
           net={penalty}
           target={target}
           onTargetChange={handleTargetChange}
-          activities={activities}
+          activities={[...activities, ...boardActivities]}
         />
         {/* 추세는 기간 선택과 상관없이 최근 6개월(이번 학년 안)을 보여 준다 */}
         <TrendChart records={yearRecords} />

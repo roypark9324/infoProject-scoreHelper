@@ -27,6 +27,16 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Publishable key>
 
 테이블(`students`, `records`, `merit_activities`)에는 Row Level Security가 켜져 있어 로그인한 본인의 행만 읽고 쓸 수 있습니다.
 
+## 상점 모집 게시판 (선생님이 모집 → 학생 신청 → 선생님 인정)
+
+1. SQL Editor에서 `supabase/board.sql` 전체를 실행합니다. (`schema.sql`을 먼저 실행한 뒤)
+2. 선생님 Google 이메일을 등록합니다. 소문자로 넣으세요. 이 목록은 브라우저에서 읽거나 고칠 수 없고, 대시보드에서만 관리합니다.
+   ```sql
+   insert into public.teachers (email) values ('teacher@example.com') on conflict do nothing;
+   ```
+3. 등록된 이메일로 로그인하면 게시판에 “선생님” 표시와 모집 글 작성 칸이 나타납니다. 그 외 계정은 학생 화면(신청만 가능)입니다.
+4. 선생님이 [인정]을 누르면 DB 함수(`decide_application`)가 그 학생의 `records`에 상점 기록을 자동으로 넣습니다. 모집 중인 글은 ‘상쇄 계획’의 활동 후보로도 쓰입니다.
+
 ## 배포
 
 GitHub `main`에 push하면 Vercel이 자동 배포합니다. Vercel 프로젝트의 Environment Variables(Production + Preview)에도 위 두 변수를 등록해야 합니다.

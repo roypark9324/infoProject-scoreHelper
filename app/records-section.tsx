@@ -125,7 +125,7 @@ export default function RecordsSection({
       <h2 className="text-sm font-bold">기록 입력</h2>
       <p className="mt-1 text-xs text-neutral-500">
         받은 벌점·상점을 한 건씩 입력하세요. 사유를 고르면 기준 점수가 자동으로 채워집니다.
-        상점은 선생님이 모집한 활동을 먼저 등록한 뒤 골라서 기록해요.
+        상점은 아래 ‘상점 모집 게시판’에서 신청해 인정받거나, 활동을 직접 등록해 기록할 수 있어요.
       </p>
 
       {/* ── 입력 폼 ─────────────────────────────── */}
@@ -171,8 +171,8 @@ export default function RecordsSection({
           <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
             <span className="text-xs font-semibold text-blue-700">모집 활동 등록</span>
             <p className="text-xs text-neutral-500">
-              선생님이 &quot;이 활동을 하면 상점 줄게&quot; 하고 모집한 활동을 이름과 점수로 등록해
-              두세요. 등록하면 아래 사유 목록에서 고를 수 있어요.
+              게시판에 없는 활동은 이름과 점수를 직접 등록해 두세요. 등록하면 아래 사유 목록에서 고를 수
+              있어요. (게시판에서 선생님이 인정한 상점은 자동으로 기록돼요.)
             </p>
             <div className="flex gap-2">
               <input
