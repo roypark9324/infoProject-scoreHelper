@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "벌점 관리 도우미",
   description:
     "학생이 받은 벌점·상점 내역을 입력하면 누적 점수, 사유별 통계, 상쇄 방법을 보여 주는 서비스",
+  // Google Search Console 사이트 소유권 확인 (Google 로그인 앱의 브랜딩 인증에 필요)
+  verification: { google: "tuB5iaeEKvC9ABkjA-_l5J1ITQWA4O_kkfIIhdVnYPM" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
