@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithGoogle } from "@/lib/auth";
+import LegalLinks from "../legal-links";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function LoginPage() {
       >
         홈으로 돌아가기
       </button>
+      <LegalLinks />
     </div>
   );
 }

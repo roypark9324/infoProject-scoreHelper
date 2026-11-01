@@ -22,6 +22,7 @@ import BoardSection from "./board-section";
 import TipsSection from "./tips-section";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
+import LegalLinks from "./legal-links";
 import {
   deleteActivity,
   deleteRecord,
@@ -269,6 +270,7 @@ export default function Dashboard() {
         2608 박종현 · 정보과학 프로젝트
       </p>
       <ConnectionStatus />
+      <LegalLinks />
     </div>
   );
 }

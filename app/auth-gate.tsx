@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, watchSession } from "@/lib/auth";
+import LegalLinks from "./legal-links";
 
 type Phase = "loading" | "in" | "out";
 
@@ -53,6 +54,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           <span className="text-base font-bold">로그인 후 이용 가능합니다</span>
           <span className="text-sm text-neutral-500">눌러서 로그인하기</span>
         </button>
+        <LegalLinks />
       </div>
     );
   }
