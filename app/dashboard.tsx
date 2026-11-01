@@ -19,6 +19,8 @@ import CauseAnalysis from "./cause-analysis";
 import TrendChart from "./trend-chart";
 import OffsetPlan from "./offset-plan";
 import BoardSection from "./board-section";
+import TipsSection from "./tips-section";
+import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
 import {
   deleteActivity,
@@ -50,6 +52,8 @@ export default function Dashboard() {
   const [activities, setActivities] = useState<MeritActivity[]>([]);
   // 게시판에서 모집 중인 활동. 상쇄 계획에서 내가 등록한 활동과 함께 쓴다.
   const [boardActivities, setBoardActivities] = useState<MeritActivity[]>([]);
+  // 팁 게시판의 글. 원인 분석 아래에 '친구들의 팁'으로 함께 보여 준다.
+  const [communityTips, setCommunityTips] = useState<CommunityTip[]>([]);
   const [period, setPeriod] = useState<Period>("year");
   const [target, setTarget] = useState(DEFAULT_TARGET);
   const [loading, setLoading] = useState(true);
@@ -249,7 +253,7 @@ export default function Dashboard() {
 
       {/* ── 결과 화면: 원인 분석(차시 4) + 상쇄 계획·월별 추세(차시 5) ── */}
       <div className="mt-4 grid gap-4">
-        <CauseAnalysis records={periodRecords} />
+        <CauseAnalysis records={periodRecords} communityTips={communityTips} />
         <OffsetPlan
           net={penalty}
           target={target}
@@ -258,6 +262,7 @@ export default function Dashboard() {
         />
         {/* 추세는 기간 선택과 상관없이 최근 6개월(이번 학년 안)을 보여 준다 */}
         <TrendChart records={yearRecords} />
+        <TipsSection onTips={setCommunityTips} />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">

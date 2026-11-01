@@ -37,6 +37,12 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Publishable key>
 3. 등록된 이메일로 로그인하면 게시판에 “선생님” 표시와 모집 글 작성 칸이 나타납니다. 그 외 계정은 학생 화면(신청만 가능)입니다.
 4. 선생님이 [인정]을 누르면 DB 함수(`decide_application`)가 그 학생의 `records`에 상점 기록을 자동으로 넣습니다. 모집 중인 글은 ‘상쇄 계획’의 활동 후보로도 쓰입니다.
 
+## 해결 방안과 벌점 줄이기 팁 게시판
+
+- **해결 방안**: ‘원인 분석’ 아래에 가장 많이 받은 원인 상위 3개의 해결 방법이 나옵니다. 사유별 문구는 `lib/tips.ts`의 `SOLUTIONS`에 있고, 학교 규정에 맞게 고치려면 이 목록만 바꾸면 됩니다.
+- **팁 게시판**: 학생이 사유별로 팁을 올리고 [도움이 돼요]를 누릅니다. 글쓴이는 ‘익명 학생’으로 보이고, 내가 쓴 글은 직접, 부적절한 글은 선생님 계정이 삭제합니다. `도움이 돼요`가 가장 많은 팁은 원인 분석 아래에도 ‘친구들의 팁’으로 나옵니다.
+- DB 준비: `board.sql`을 실행한 뒤 SQL Editor에서 `supabase/tips.sql` 전체를 실행합니다. (선생님 확인 함수 `is_teacher()`를 사용합니다)
+
 ## 배포
 
 GitHub `main`에 push하면 Vercel이 자동 배포합니다. Vercel 프로젝트의 Environment Variables(Production + Preview)에도 위 두 변수를 등록해야 합니다.
