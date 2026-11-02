@@ -25,10 +25,19 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // 로그인 확인 전(서버가 처음 보내는 HTML)에도 서비스 소개와 방침 링크가 보이게 한다.
+  // Google이 홈페이지를 점검할 때는 자바스크립트를 실행하지 않아도 이 내용을 읽을 수 있어야 한다.
   if (phase === "loading") {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 py-8 text-sm text-neutral-400">
-        불러오는 중…
+      <div className="mx-auto w-full max-w-2xl px-4 py-8">
+        <header className="mb-6">
+          <h1 className="text-xl font-bold">벌점 관리 도우미</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            학생이 받은 벌점·상점을 입력하면 누적 점수, 원인, 줄이는 방법, 상점으로 상쇄하는 방법을 보여 주는 서비스
+          </p>
+        </header>
+        <p className="text-sm text-neutral-400">불러오는 중…</p>
+        <LegalLinks />
       </div>
     );
   }
