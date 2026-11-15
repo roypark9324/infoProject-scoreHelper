@@ -20,6 +20,8 @@ import TrendChart from "./trend-chart";
 import OffsetPlan from "./offset-plan";
 import BoardSection from "./board-section";
 import TipsSection from "./tips-section";
+import FriendsSection from "./friends-section";
+import NotificationBell from "./notification-bell";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
 import LegalLinks from "./legal-links";
@@ -132,11 +134,14 @@ export default function Dashboard() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-xl font-bold">벌점 관리 도우미</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          내가 받은 벌점을 기록에서 끝내지 않고, 원인과 상쇄 방법까지 보여 주는 서비스
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">벌점 관리 도우미</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            내가 받은 벌점을 기록에서 끝내지 않고, 원인과 상쇄 방법까지 보여 주는 서비스
+          </p>
+        </div>
+        <NotificationBell />
       </header>
 
       {dbError && (
@@ -264,6 +269,8 @@ export default function Dashboard() {
         {/* 추세는 기간 선택과 상관없이 최근 6개월(이번 학년 안)을 보여 준다 */}
         <TrendChart records={yearRecords} />
         <TipsSection onTips={setCommunityTips} />
+        {/* 친구와 서로의 누적 벌점 합계를 비교하는 벌점 대결 */}
+        <FriendsSection />
       </div>
 
       <p className="mt-8 text-center text-xs text-neutral-400">

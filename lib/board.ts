@@ -15,6 +15,8 @@ export interface MeritPost {
   /** 인정되면 받는 상점 (양수) */
   points: number;
   isOpen: boolean;
+  /** 신청 마감일 (YYYY-MM-DD). 없으면 직접 마감할 때까지 열려 있다. */
+  deadline: string | null;
   createdAt: number;
 }
 
@@ -38,7 +40,8 @@ export interface BoardData {
   applications: Application[];
 }
 
-const POST_COLS = "id, author_id, author_name, author_email, title, description, points, is_open, created_at";
+const POST_COLS =
+  "id, author_id, author_name, author_email, title, description, points, is_open, deadline, created_at";
 const APP_COLS = "id, post_id, student_id, student_email, student_name, status, created_at";
 
 interface PostRow {
@@ -50,6 +53,7 @@ interface PostRow {
   description: string;
   points: number;
   is_open: boolean;
+  deadline: string | null;
   created_at: string;
 }
 
@@ -81,6 +85,7 @@ function toPost(row: PostRow): MeritPost {
     description: row.description,
     points: Number(row.points),
     isOpen: row.is_open,
+    deadline: row.deadline,
     createdAt: new Date(row.created_at).getTime(),
   };
 }
@@ -97,9 +102,38 @@ function toApplication(row: ApplicationRow): Application {
   };
 }
 
+/** 오늘 날짜 (YYYY-MM-DD, 한국 시간). DB의 마감일과 문자열로 크기를 비교한다. */
+export function todayISO(now = new Date()): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(now);
+}
+
+/** 마감일까지 남은 날수. 오늘이 마감일이면 0, 지났으면 음수, 마감일이 없으면 null. */
+export function daysLeft(post: MeritPost, now = new Date()): number | null {
+  if (!post.deadline) return null;
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.round((Date.parse(post.deadline) - Date.parse(todayISO(now))) / MS_PER_DAY);
+}
+
+/** 지금 신청할 수 있는 글인지: 직접 마감하지 않았고 마감일이 지나지 않았다. */
+export function isAcceptingApplications(post: MeritPost, now = new Date()): boolean {
+  const left = daysLeft(post, now);
+  return post.isOpen && (left === null || left >= 0);
+}
+
+/** 마감 표시 문구 (예: "마감 D-3", "오늘 마감"). 마감일이 없으면 빈 문자열. */
+export function deadlineLabel(post: MeritPost, now = new Date()): string {
+  const left = daysLeft(post, now);
+  if (left === null) return "";
+  if (left < 0) return "기한 지남";
+  if (left === 0) return "오늘 마감";
+  return `마감 D-${left}`;
+}
+
 /** 모집 중인 글을 '상쇄 계획'이 쓰는 활동 형태로 바꾼다. (id는 개인 활동과 겹치지 않게 접두어를 붙임) */
 export function postsToActivities(posts: MeritPost[]): MeritActivity[] {
-  return posts.filter((p) => p.isOpen).map((p) => ({ id: `post:${p.id}`, name: p.title, points: p.points }));
+  return posts
+    .filter((p) => isAcceptingApplications(p))
+    .map((p) => ({ id: `post:${p.id}`, name: p.title, points: p.points }));
 }
 
 export async function fetchBoard(): Promise<BoardData> {
@@ -123,10 +157,21 @@ export async function fetchBoard(): Promise<BoardData> {
 
 // ── 모집하는 사람 ──────────────────────────────────────
 
-export async function createPost(input: { title: string; description: string; points: number }): Promise<void> {
+export async function createPost(input: {
+  title: string;
+  description: string;
+  points: number;
+  /** YYYY-MM-DD 또는 빈 문자열(마감일 없음) */
+  deadline: string;
+}): Promise<void> {
   const { error } = await createClient()
     .from("merit_posts")
-    .insert({ title: input.title, description: input.description, points: input.points });
+    .insert({
+      title: input.title,
+      description: input.description,
+      points: input.points,
+      deadline: input.deadline || null,
+    });
   if (error) throw explain(error);
 }
 

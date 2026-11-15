@@ -11,10 +11,13 @@ import {
   applyToPost,
   cancelApplication,
   createPost,
+  deadlineLabel,
   decideApplication,
   deletePost,
   fetchBoard,
+  isAcceptingApplications,
   postsToActivities,
+  todayISO,
   setPostOpen,
   type Application,
   type BoardData,
@@ -47,6 +50,7 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const reload = useCallback(async () => {
@@ -100,16 +104,19 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     const found = validateActivity(title, points);
+    // 마감일은 비워 둘 수 있지만, 적었다면 오늘 이후여야 한다.
+    if (deadline && deadline < todayISO()) found.push("마감일은 오늘 이후 날짜로 정하세요.");
     if (found.length > 0) {
       setFormErrors(found);
       return;
     }
     setFormErrors([]);
     void act(async () => {
-      await createPost({ title: title.trim(), description: description.trim(), points: Number(points) });
+      await createPost({ title: title.trim(), description: description.trim(), points: Number(points), deadline });
       setTitle("");
       setDescription("");
       setPoints("");
+      setDeadline("");
     });
   }
 
@@ -147,10 +154,12 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
             title={title}
             description={description}
             points={points}
+            deadline={deadline}
             formErrors={formErrors}
             onTitle={setTitle}
             onDescription={setDescription}
             onPoints={setPoints}
+            onDeadline={setDeadline}
             onCreate={handleCreate}
             act={act}
           />
@@ -169,10 +178,12 @@ interface MyPostsProps {
   title: string;
   description: string;
   points: string;
+  deadline: string;
   formErrors: string[];
   onTitle: (v: string) => void;
   onDescription: (v: string) => void;
   onPoints: (v: string) => void;
+  onDeadline: (v: string) => void;
   onCreate: (e: React.FormEvent) => void;
   act: (action: () => Promise<void>) => Promise<void>;
 }
@@ -183,10 +194,12 @@ function MyPostsView({
   title,
   description,
   points,
+  deadline,
   formErrors,
   onTitle,
   onDescription,
   onPoints,
+  onDeadline,
   onCreate,
   act,
 }: MyPostsProps) {
@@ -222,6 +235,15 @@ function MyPostsView({
             placeholder="상점 점수"
             onChange={(e) => onPoints(e.target.value)}
             className="w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={deadline}
+            min={todayISO()}
+            aria-label="신청 마감일 (선택)"
+            title="신청 마감일 (비워 두면 직접 마감할 때까지)"
+            onChange={(e) => onDeadline(e.target.value)}
+            className="w-40 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
           />
           <button
             type="submit"
@@ -282,8 +304,13 @@ function MyPost({
         <div className="min-w-0">
           <p className="text-sm font-semibold">
             {post.title} <span className="text-blue-600">· 상점 {post.points}점</span>
-            {!post.isOpen && (
+            {!isAcceptingApplications(post) && (
               <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">마감</span>
+            )}
+            {isAcceptingApplications(post) && post.deadline && (
+              <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                {deadlineLabel(post)}
+              </span>
             )}
           </p>
           {post.description && <p className="mt-0.5 text-xs text-neutral-500">{post.description}</p>}
@@ -360,7 +387,7 @@ function OthersPostsView({
   const mine = data.applications.filter((a) => a.studentId === data.userId);
   // 남이 올린 글 중 모집 중인 글 + 마감됐어도 내가 신청해 둔 글
   const visible = data.posts.filter(
-    (p) => p.authorId !== data.userId && (p.isOpen || mine.some((a) => a.postId === p.id)),
+    (p) => p.authorId !== data.userId && (isAcceptingApplications(p) || mine.some((a) => a.postId === p.id)),
   );
 
   return (
@@ -396,12 +423,22 @@ function PostList({
           <li key={post.id} className="rounded-xl border border-neutral-200 p-3">
             <p className="text-sm font-semibold">
               {post.title} <span className="text-blue-600">· 상점 {post.points}점</span>
+              {post.deadline && (
+                <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                  {deadlineLabel(post)} ({post.deadline})
+                </span>
+              )}
             </p>
             {post.description && <p className="mt-0.5 text-xs text-neutral-500">{post.description}</p>}
             <p className="mt-1 text-xs text-neutral-400">상점 주는 사람: {giver(post)}</p>
 
             <div className="mt-2">
-              {!application && (
+              {!application && !isAcceptingApplications(post) && (
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-500">
+                  신청 마감
+                </span>
+              )}
+              {!application && isAcceptingApplications(post) && (
                 <button
                   type="button"
                   disabled={busy}
