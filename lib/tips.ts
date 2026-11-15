@@ -108,7 +108,6 @@ export interface CommunityTip {
 
 export interface TipBoard {
   userId: string;
-  isTeacher: boolean;
   tips: CommunityTip[];
 }
 
@@ -151,12 +150,10 @@ export async function fetchTips(): Promise<TipBoard> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.");
 
-  const [teacher, tips, votes] = await Promise.all([
-    supabase.rpc("is_teacher"),
+  const [tips, votes] = await Promise.all([
     supabase.from("tips").select("id, author_id, reason_id, body, created_at"),
     supabase.from("tip_votes").select("tip_id, voter_id"),
   ]);
-  if (teacher.error) throw explain(teacher.error);
   if (tips.error) throw explain(tips.error);
   if (votes.error) throw explain(votes.error);
 
@@ -179,7 +176,7 @@ export async function fetchTips(): Promise<TipBoard> {
     }))
     .sort(byHelpful);
 
-  return { userId: auth.user.id, isTeacher: teacher.data === true, tips: list };
+  return { userId: auth.user.id, tips: list };
 }
 
 export async function postTip(reasonId: string, body: string): Promise<void> {

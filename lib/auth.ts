@@ -11,7 +11,7 @@ const NOT_CONFIGURED = "Supabase 설정(.env.local)이 비어 있습니다.";
 
 // 비밀번호 없이 만들어진 계정(예전 Google 가입 등)이거나 비밀번호를 잊은 경우에도 같은 문구가 나온다.
 const ALREADY_REGISTERED =
-  "이미 가입된 이메일입니다. 비밀번호가 기억나지 않거나 예전에 Google로 가입한 계정이라면 관리자에게 문의하세요.";
+  "이미 가입된 이메일입니다. 로그인 탭에서 비밀번호로 로그인해 보세요.";
 
 /** Supabase가 영어로 주는 흔한 오류를 학생이 알아볼 문장으로 바꾼다. */
 function explain(message: string): string {

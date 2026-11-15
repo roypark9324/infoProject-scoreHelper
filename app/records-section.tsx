@@ -37,7 +37,7 @@ interface Props {
   records: ScoreRecord[];
   onAdd: (record: ScoreRecord) => void;
   onDelete: (id: string) => void;
-  /** 선생님이 모집한 상점 활동 목록 (상점 기록의 사유가 된다) */
+  /** 모집된 상점 활동 목록 (상점 기록의 사유가 된다) */
   activities: MeritActivity[];
   onAddActivity: (activity: MeritActivity) => void;
   onDeleteActivity: (id: string) => void;
@@ -166,13 +166,13 @@ export default function RecordsSection({
           />
         </label>
 
-        {/* 상점: 선생님이 모집한 활동 등록 */}
+        {/* 상점: 모집된 활동 등록 */}
         {isMerit && (
           <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
             <span className="text-xs font-semibold text-blue-700">모집 활동 등록</span>
             <p className="text-xs text-neutral-500">
               게시판에 없는 활동은 이름과 점수를 직접 등록해 두세요. 등록하면 아래 사유 목록에서 고를 수
-              있어요. (게시판에서 선생님이 인정한 상점은 자동으로 기록돼요.)
+              있어요. (게시판에서 인정된 상점은 자동으로 기록돼요.)
             </p>
             <div className="flex gap-2">
               <input

@@ -1,6 +1,6 @@
-// 벌점 관리 도우미 - 상점 모집 게시판 (선생님이 모집 → 학생 신청 → 선생님 인정)
-// 테이블과 권한은 supabase/board.sql 참고. 누가 선생님인지는 DB가 판단하고(is_teacher),
-// 인정하면 DB 함수(decide_application)가 그 학생의 상점 기록을 대신 만들어 준다.
+// 벌점 관리 도우미 - 상점 모집 게시판 (누구나 모집 → 다른 사람이 신청 → 모집한 사람이 인정)
+// 테이블과 권한은 supabase/board.sql 참고. 역할(선생님·관리자)은 없다.
+// 인정하면 DB 함수(decide_application)가 신청한 사람의 상점 기록을 대신 만들고, 메모에 누가 줬는지 남긴다.
 
 import type { MeritActivity } from "./reasons";
 import { createClient } from "./supabase";
@@ -8,6 +8,7 @@ import { createClient } from "./supabase";
 export interface MeritPost {
   id: string;
   authorId: string;
+  authorName: string;
   authorEmail: string;
   title: string;
   description: string;
@@ -32,18 +33,18 @@ export interface Application {
 export interface BoardData {
   /** 지금 로그인한 사용자의 id */
   userId: string;
-  isTeacher: boolean;
   posts: MeritPost[];
-  /** 내 신청 + (선생님이면) 내 모집 글에 들어온 신청 */
+  /** 내 신청 + 내가 올린 모집 글에 들어온 신청 */
   applications: Application[];
 }
 
-const POST_COLS = "id, author_id, author_email, title, description, points, is_open, created_at";
+const POST_COLS = "id, author_id, author_name, author_email, title, description, points, is_open, created_at";
 const APP_COLS = "id, post_id, student_id, student_email, student_name, status, created_at";
 
 interface PostRow {
   id: string;
   author_id: string;
+  author_name: string;
   author_email: string;
   title: string;
   description: string;
@@ -74,6 +75,7 @@ function toPost(row: PostRow): MeritPost {
   return {
     id: row.id,
     authorId: row.author_id,
+    authorName: row.author_name,
     authorEmail: row.author_email,
     title: row.title,
     description: row.description,
@@ -105,24 +107,21 @@ export async function fetchBoard(): Promise<BoardData> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.");
 
-  const [teacher, posts, applications] = await Promise.all([
-    supabase.rpc("is_teacher"),
+  const [posts, applications] = await Promise.all([
     supabase.from("merit_posts").select(POST_COLS).order("created_at", { ascending: false }),
     supabase.from("merit_applications").select(APP_COLS).order("created_at", { ascending: true }),
   ]);
-  if (teacher.error) throw explain(teacher.error);
   if (posts.error) throw explain(posts.error);
   if (applications.error) throw explain(applications.error);
 
   return {
     userId: auth.user.id,
-    isTeacher: teacher.data === true,
     posts: (posts.data as PostRow[]).map(toPost),
     applications: (applications.data as ApplicationRow[]).map(toApplication),
   };
 }
 
-// ── 선생님 ─────────────────────────────────────────────
+// ── 모집하는 사람 ──────────────────────────────────────
 
 export async function createPost(input: { title: string; description: string; points: number }): Promise<void> {
   const { error } = await createClient()
@@ -147,7 +146,7 @@ export async function decideApplication(id: string, approve: boolean): Promise<v
   if (error) throw explain(error);
 }
 
-// ── 학생 ───────────────────────────────────────────────
+// ── 신청하는 사람 ──────────────────────────────────────
 
 export async function applyToPost(postId: string): Promise<void> {
   const { error } = await createClient().from("merit_applications").insert({ post_id: postId });

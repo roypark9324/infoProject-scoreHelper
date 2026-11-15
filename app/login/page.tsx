@@ -1,7 +1,7 @@
 "use client";
 
 // 로그인 · 회원가입 화면. 이메일과 비밀번호로 Supabase Auth에 로그인하고, 끝나면 첫 화면(/)으로 간다.
-// 회원가입을 하면 학생 계정이 만들어진다. 선생님은 가입 뒤 첫 화면의 '내 계정'에서 신청한다.
+// 회원가입을 하면 계정이 만들어진다. 계정 종류(역할)는 따로 없고 가입한 누구나 같은 기능을 쓴다.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -179,12 +179,6 @@ export default function LoginPage() {
           {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
         </button>
       </form>
-
-      {mode === "signup" && (
-        <p className="mt-3 text-center text-xs text-neutral-400">
-          선생님이라면 학생 계정으로 가입한 뒤 ‘내 계정’에서 선생님 신청을 하세요. 관리자가 승인하면 선생님 기능이 열립니다.
-        </p>
-      )}
 
       <button
         type="button"

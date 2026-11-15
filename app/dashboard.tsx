@@ -19,7 +19,6 @@ import CauseAnalysis from "./cause-analysis";
 import TrendChart from "./trend-chart";
 import OffsetPlan from "./offset-plan";
 import BoardSection from "./board-section";
-import AccountSection from "./account-section";
 import TipsSection from "./tips-section";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
@@ -40,7 +39,7 @@ import {
 // 차시 5: 조회 기간 선택, 월별 추세, 상쇄 계획을 더해 결과 화면을 완성한다.
 // 차시 7: 기록·모집 활동·목표 점수를 Supabase DB에 저장한다.
 // 차시 8: 로그인하면 저장된 기록을 불러와 같은 통계로 보여 준다.
-// 이후: 선생님이 올린 상점 모집 글(게시판)에 학생이 신청하고, 인정되면 상점 기록이 자동으로 들어온다.
+// 이후: 누군가 올린 상점 모집 글(게시판)에 신청하고, 모집한 사람이 인정하면 상점 기록이 자동으로 들어온다.
 
 /** 목표 점수 기본값 = '안전' 단계의 상한 */
 const DEFAULT_TARGET = 10;
@@ -88,7 +87,7 @@ export default function Dashboard() {
     }
   }
 
-  // 선생님이 인정해 준 상점이 목록에 나타나도록 기록을 다시 불러온다.
+  // 인정된 상점이 목록에 나타나도록 기록을 다시 불러온다.
   const refreshRecords = () =>
     run(async () => {
       setRecords(await fetchRecords());
@@ -248,12 +247,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── 내 계정: 선생님 신청(학생) · 신청 승인(관리자) ─────── */}
-      <div className="mt-4">
-        <AccountSection />
-      </div>
-
-      {/* ── 상점 모집 게시판: 선생님이 모집 → 학생 신청 → 선생님 인정 ── */}
+      {/* ── 상점 모집 게시판: 누구나 모집 → 다른 사람이 신청 → 모집한 사람이 인정 ── */}
       <div className="mt-4">
         <BoardSection onOpenPosts={setBoardActivities} onRefreshRecords={refreshRecords} />
       </div>

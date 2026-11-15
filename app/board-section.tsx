@@ -1,10 +1,10 @@
 "use client";
 
-// 상점 모집 게시판
-// - 선생님: "이 활동을 하면 상점 N점" 모집 글을 올리고, 들어온 신청을 인정/거절한다.
-//   (인정하면 신청한 학생의 상점 기록이 자동으로 생긴다.)
-// - 학생: 모집 중인 글을 보고 [참여 신청]을 누르고, 선생님이 인정하면 상점이 기록된다.
-// 누가 선생님인지는 DB의 계정 역할(profiles.role)로 정해진다. 신청·승인은 '내 계정'에서 한다. (supabase/accounts.sql)
+// 상점 모집 게시판 (역할 구분 없음: 가입한 누구나 모집하고 신청할 수 있다)
+// - 모집: "이 활동을 하면 상점 N점" 글을 올리고, 내 글에 들어온 신청을 인정/거절한다.
+//   (인정하면 신청한 사람의 상점 기록이 자동으로 생기고, 메모에 '누가 줬는지'가 남는다.)
+// - 신청: 다른 사람이 올린 모집 글을 보고 [참여 신청]을 누른다. 내 글에는 신청할 수 없다.
+// 테이블과 권한은 supabase/board.sql.
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -34,11 +34,16 @@ function who(a: Application): string {
   return a.studentName ? `${a.studentName} (${a.studentEmail})` : a.studentEmail;
 }
 
+/** 모집한 사람 표시: 이름 (이메일) */
+function giver(post: MeritPost): string {
+  return post.authorName ? `${post.authorName} (${post.authorEmail})` : post.authorEmail;
+}
+
 export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
   const [data, setData] = useState<BoardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // 선생님: 모집 글 작성 칸
+  // 모집 글 작성 칸
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState("");
@@ -108,19 +113,10 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
     });
   }
 
-  const isTeacher = data?.isTeacher ?? false;
-
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold">상점 모집 게시판</h2>
-          {isTeacher && (
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-              선생님
-            </span>
-          )}
-        </div>
+        <h2 className="text-sm font-bold">상점 모집 게시판</h2>
         <button
           type="button"
           onClick={handleRefresh}
@@ -131,9 +127,8 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
         </button>
       </div>
       <p className="mt-1 text-xs text-neutral-500">
-        {isTeacher
-          ? "“이 활동을 하면 상점을 줄게” 하고 모집 글을 올리세요. 학생이 신청하면 인정해 주세요."
-          : "선생님이 올린 모집 글을 보고 [참여 신청]을 누르세요. 선생님이 인정하면 상점이 기록에 자동으로 추가돼요."}
+        “이 활동을 하면 상점을 줄게” 하고 모집 글을 올리거나, 다른 사람이 올린 글에 [참여 신청]을 누르세요.
+        인정되면 상점이 기록에 자동으로 추가되고, 누가 줬는지도 함께 남아요.
       </p>
 
       {error && (
@@ -144,30 +139,31 @@ export default function BoardSection({ onOpenPosts, onRefreshRecords }: Props) {
 
       {!data && !error && <p className="mt-3 text-xs text-neutral-400">불러오는 중…</p>}
 
-      {data && isTeacher && (
-        <TeacherView
-          data={data}
-          busy={busy}
-          title={title}
-          description={description}
-          points={points}
-          formErrors={formErrors}
-          onTitle={setTitle}
-          onDescription={setDescription}
-          onPoints={setPoints}
-          onCreate={handleCreate}
-          act={act}
-        />
+      {data && (
+        <>
+          <MyPostsView
+            data={data}
+            busy={busy}
+            title={title}
+            description={description}
+            points={points}
+            formErrors={formErrors}
+            onTitle={setTitle}
+            onDescription={setDescription}
+            onPoints={setPoints}
+            onCreate={handleCreate}
+            act={act}
+          />
+          <OthersPostsView data={data} busy={busy} act={act} />
+        </>
       )}
-
-      {data && !isTeacher && <StudentView data={data} busy={busy} act={act} />}
     </section>
   );
 }
 
-// ── 선생님 화면 ───────────────────────────────────────
+// ── 내가 모집하는 글 ──────────────────────────────────
 
-interface TeacherProps {
+interface MyPostsProps {
   data: BoardData;
   busy: boolean;
   title: string;
@@ -181,7 +177,7 @@ interface TeacherProps {
   act: (action: () => Promise<void>) => Promise<void>;
 }
 
-function TeacherView({
+function MyPostsView({
   data,
   busy,
   title,
@@ -193,7 +189,7 @@ function TeacherView({
   onPoints,
   onCreate,
   act,
-}: TeacherProps) {
+}: MyPostsProps) {
   const myPosts = data.posts.filter((p) => p.authorId === data.userId);
 
   return (
@@ -252,7 +248,7 @@ function TeacherView({
       ) : (
         <ul className="mt-3 grid gap-3">
           {myPosts.map((post) => (
-            <TeacherPost
+            <MyPost
               key={post.id}
               post={post}
               applications={data.applications.filter((a) => a.postId === post.id)}
@@ -266,7 +262,7 @@ function TeacherView({
   );
 }
 
-function TeacherPost({
+function MyPost({
   post,
   applications,
   busy,
@@ -350,9 +346,9 @@ function TeacherPost({
   );
 }
 
-// ── 학생 화면 ─────────────────────────────────────────
+// ── 다른 사람이 올린 모집 글 (신청하는 화면) ──────────
 
-function StudentView({
+function OthersPostsView({
   data,
   busy,
   act,
@@ -362,20 +358,39 @@ function StudentView({
   act: (action: () => Promise<void>) => Promise<void>;
 }) {
   const mine = data.applications.filter((a) => a.studentId === data.userId);
-  // 모집 중인 글 + 마감됐어도 내가 신청해 둔 글
-  const visible = data.posts.filter((p) => p.isOpen || mine.some((a) => a.postId === p.id));
-
-  if (visible.length === 0) {
-    return (
-      <p className="mt-3 rounded-xl border border-dashed border-neutral-200 px-3 py-6 text-center text-xs text-neutral-400">
-        지금 모집 중인 활동이 없습니다. 선생님이 모집 글을 올리면 여기에 나타나요.
-      </p>
-    );
-  }
+  // 남이 올린 글 중 모집 중인 글 + 마감됐어도 내가 신청해 둔 글
+  const visible = data.posts.filter(
+    (p) => p.authorId !== data.userId && (p.isOpen || mine.some((a) => a.postId === p.id)),
+  );
 
   return (
-    <ul className="mt-4 grid gap-3">
-      {visible.map((post) => {
+    <>
+      <h3 className="mt-5 text-sm font-bold">다른 사람이 올린 모집</h3>
+      {visible.length === 0 ? (
+        <p className="mt-3 rounded-xl border border-dashed border-neutral-200 px-3 py-6 text-center text-xs text-neutral-400">
+          지금 모집 중인 활동이 없습니다. 다른 사람이 모집 글을 올리면 여기에 나타나요.
+        </p>
+      ) : (
+        <PostList posts={visible} mine={mine} busy={busy} act={act} />
+      )}
+    </>
+  );
+}
+
+function PostList({
+  posts,
+  mine,
+  busy,
+  act,
+}: {
+  posts: MeritPost[];
+  mine: Application[];
+  busy: boolean;
+  act: (action: () => Promise<void>) => Promise<void>;
+}) {
+  return (
+    <ul className="mt-3 grid gap-3">
+      {posts.map((post) => {
         const application = mine.find((a) => a.postId === post.id);
         return (
           <li key={post.id} className="rounded-xl border border-neutral-200 p-3">
@@ -383,7 +398,7 @@ function StudentView({
               {post.title} <span className="text-blue-600">· 상점 {post.points}점</span>
             </p>
             {post.description && <p className="mt-0.5 text-xs text-neutral-500">{post.description}</p>}
-            <p className="mt-1 text-xs text-neutral-400">모집: {post.authorEmail}</p>
+            <p className="mt-1 text-xs text-neutral-400">상점 주는 사람: {giver(post)}</p>
 
             <div className="mt-2">
               {!application && (
@@ -399,7 +414,7 @@ function StudentView({
               {application?.status === "pending" && (
                 <p className="flex items-center gap-2 text-xs">
                   <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
-                    신청함 · 선생님 인정 대기
+                    신청함 · 인정 대기
                   </span>
                   <button
                     type="button"
@@ -414,7 +429,9 @@ function StudentView({
               {application?.status === "approved" && (
                 <p className="text-xs">
                   <span className="rounded-full bg-blue-50 px-2 py-0.5 font-semibold text-blue-700">인정됨</span>{" "}
-                  <span className="text-neutral-500">상점 {post.points}점이 기록에 추가됐어요.</span>
+                  <span className="text-neutral-500">
+                    {post.authorName || post.authorEmail}님이 준 상점 {post.points}점이 기록에 추가됐어요.
+                  </span>
                 </p>
               )}
               {application?.status === "rejected" && (

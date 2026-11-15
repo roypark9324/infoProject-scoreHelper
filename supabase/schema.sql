@@ -27,7 +27,7 @@ create table if not exists public.records (
 );
 create index if not exists records_user_date_idx on public.records (user_id, record_date desc);
 
--- ── 선생님이 모집한 상점 활동 ────────────────────────────────────
+-- ── 모집된 상점 활동 ────────────────────────────────────
 create table if not exists public.merit_activities (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,

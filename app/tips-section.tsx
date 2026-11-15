@@ -3,7 +3,7 @@
 // 벌점 줄이기 팁 게시판
 // - 학생이 사유(원인)별로 "이렇게 하니까 안 받게 됐어요" 같은 팁을 올린다. 글쓴이는 이름 없이 '익명 학생'으로 보인다.
 // - [도움이 돼요]를 누르면 위로 올라가고, 가장 많이 받은 팁은 '원인 분석' 아래에도 함께 나온다.
-// - 내가 쓴 글은 직접 지우고, 부적절한 글은 선생님이 지운다. (테이블은 supabase/tips.sql)
+// - 내가 쓴 글은 직접 지운다. (테이블은 supabase/tips.sql)
 
 import { useCallback, useEffect, useState } from "react";
 import { REASONS, getReason } from "@/lib/reasons";
@@ -215,7 +215,7 @@ export default function TipsSection({ onTips }: Props) {
                       >
                         👍 도움이 돼요 {tip.votes}
                       </button>
-                      {(mine || data.isTeacher) && (
+                      {mine && (
                         <button
                           type="button"
                           disabled={busy}

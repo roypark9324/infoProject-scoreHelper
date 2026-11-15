@@ -44,7 +44,7 @@ export default function OffsetPlan({ net, target, onTargetChange, activities }: 
         </p>
       ) : !best ? (
         <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-3 text-sm text-neutral-600">
-          목표 {target}점까지 <b>{plan.need}점</b>을 줄여야 합니다. 선생님이 모집하는 상점 활동을
+          목표 {target}점까지 <b>{plan.need}점</b>을 줄여야 합니다. 모집 중인 상점 활동을
           &apos;기록 입력 &gt; 상점&apos;에서 등록하면, 어떤 활동을 몇 번 해야 하는지 알려 드려요.
         </p>
       ) : (
