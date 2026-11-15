@@ -128,7 +128,8 @@ export default function LoginPage() {
           <input
             type="email"
             value={email}
-            autoComplete="email"
+            // 브라우저가 저장해 둔 이메일을 미리 채우지 않도록 자동완성을 끈다. (항상 빈 칸으로 시작)
+            autoComplete="off"
             onChange={(e) => setEmail(e.target.value)}
             className={input}
           />

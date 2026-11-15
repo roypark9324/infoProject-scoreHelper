@@ -9,13 +9,17 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 const NOT_CONFIGURED = "Supabase 설정(.env.local)이 비어 있습니다.";
 
+// 비밀번호 없이 만들어진 계정(예전 Google 가입 등)이거나 비밀번호를 잊은 경우에도 같은 문구가 나온다.
+const ALREADY_REGISTERED =
+  "이미 가입된 이메일입니다. 비밀번호가 기억나지 않거나 예전에 Google로 가입한 계정이라면 관리자에게 문의하세요.";
+
 /** Supabase가 영어로 주는 흔한 오류를 학생이 알아볼 문장으로 바꾼다. */
 function explain(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "이메일 또는 비밀번호가 맞지 않습니다.";
   if (m.includes("email not confirmed")) return "이메일 인증이 아직 끝나지 않았습니다. 받은 메일의 링크를 눌러 주세요.";
   if (m.includes("already registered") || m.includes("already been registered")) {
-    return "이미 가입된 이메일입니다. 로그인해 주세요.";
+    return ALREADY_REGISTERED;
   }
   if (m.includes("password") && m.includes("characters")) {
     return `비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`;
@@ -48,7 +52,7 @@ export async function signUp({ name, email, password }: SignUpInput): Promise<Si
   if (error) return { error: explain(error.message), needsEmailConfirm: false };
   // 이미 가입된 이메일이면 Supabase는 오류 대신 identities가 빈 사용자를 돌려준다.
   if (data.user && (data.user.identities?.length ?? 0) === 0) {
-    return { error: "이미 가입된 이메일입니다. 로그인해 주세요.", needsEmailConfirm: false };
+    return { error: ALREADY_REGISTERED, needsEmailConfirm: false };
   }
   return { error: null, needsEmailConfirm: !data.session };
 }
