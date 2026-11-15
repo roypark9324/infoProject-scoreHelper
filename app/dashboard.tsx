@@ -19,6 +19,7 @@ import CauseAnalysis from "./cause-analysis";
 import TrendChart from "./trend-chart";
 import OffsetPlan from "./offset-plan";
 import BoardSection from "./board-section";
+import AccountSection from "./account-section";
 import TipsSection from "./tips-section";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
@@ -245,6 +246,11 @@ export default function Dashboard() {
           onAddActivity={handleAddActivity}
           onDeleteActivity={handleDeleteActivity}
         />
+      </div>
+
+      {/* ── 내 계정: 선생님 신청(학생) · 신청 승인(관리자) ─────── */}
+      <div className="mt-4">
+        <AccountSection />
       </div>
 
       {/* ── 상점 모집 게시판: 선생님이 모집 → 학생 신청 → 선생님 인정 ── */}

@@ -23,19 +23,29 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<Publishable key>
 
 1. Supabase 대시보드 → **SQL Editor** → New query
 2. `supabase/schema.sql` 전체를 붙여 넣고 **Run**
-3. Authentication → Sign In / Providers → **Google** 켜기, URL Configuration에 배포 주소와 `http://localhost:3000` 등록
+3. Authentication → Sign In / Providers → **Email** 이 켜져 있는지 확인하고, 학교 서비스라 인증 메일을 보내기 어려우므로 **Confirm email** 을 끕니다. (켜 두면 가입 직후 메일 인증이 필요하고, 기본 메일 발송에는 시간당 횟수 제한이 있습니다.)
+4. (예전에 Google로 가입한 계정을 지우려면) Authentication → Users에서 삭제합니다. 사용자를 지우면 그 사람의 기록도 함께 지워집니다.
 
 테이블(`students`, `records`, `merit_activities`)에는 Row Level Security가 켜져 있어 로그인한 본인의 행만 읽고 쓸 수 있습니다.
 
+## 계정 · 역할 (회원가입 → 선생님 신청 → 관리자 승인)
+
+로그인은 이메일/비밀번호입니다. 비밀번호는 Supabase가 암호화해서 보관합니다.
+
+1. SQL Editor에서 `supabase/accounts.sql` 전체를 실행합니다. (`schema.sql` 다음, `board.sql` 앞)
+2. 사이트에서 **회원가입**을 합니다. 가입하면 모두 학생 계정입니다.
+3. 내 계정을 **관리자**로 올립니다. 이 한 줄은 SQL Editor에서만 실행할 수 있습니다. (브라우저에서는 역할을 바꿀 수 없습니다)
+   ```sql
+   update public.profiles set role = 'admin' where email = '내이메일@example.com';
+   ```
+4. 선생님은 가입한 뒤 첫 화면의 **내 계정 → 선생님 계정 신청**을 누릅니다.
+5. 관리자로 로그인하면 **내 계정**에 신청 목록이 보이고, [승인]/[거절]을 누를 수 있습니다. 승인된 선생님은 [권한 해제]로 학생으로 되돌릴 수 있습니다. 승인된 계정은 [새로고침] 뒤에 선생님 화면이 열립니다.
+
 ## 상점 모집 게시판 (선생님이 모집 → 학생 신청 → 선생님 인정)
 
-1. SQL Editor에서 `supabase/board.sql` 전체를 실행합니다. (`schema.sql`을 먼저 실행한 뒤)
-2. 선생님 Google 이메일을 등록합니다. 소문자로 넣으세요. 이 목록은 브라우저에서 읽거나 고칠 수 없고, 대시보드에서만 관리합니다.
-   ```sql
-   insert into public.teachers (email) values ('teacher@example.com') on conflict do nothing;
-   ```
-3. 등록된 이메일로 로그인하면 게시판에 “선생님” 표시와 모집 글 작성 칸이 나타납니다. 그 외 계정은 학생 화면(신청만 가능)입니다.
-4. 선생님이 [인정]을 누르면 DB 함수(`decide_application`)가 그 학생의 `records`에 상점 기록을 자동으로 넣습니다. 모집 중인 글은 ‘상쇄 계획’의 활동 후보로도 쓰입니다.
+1. SQL Editor에서 `supabase/board.sql` 전체를 실행합니다. (`schema.sql`, `accounts.sql`을 먼저 실행한 뒤)
+2. 승인된 선생님(과 관리자)으로 로그인하면 게시판에 “선생님” 표시와 모집 글 작성 칸이 나타납니다. 그 외 계정은 학생 화면(신청만 가능)입니다.
+3. 선생님이 [인정]을 누르면 DB 함수(`decide_application`)가 그 학생의 `records`에 상점 기록을 자동으로 넣습니다. 모집 중인 글은 ‘상쇄 계획’의 활동 후보로도 쓰입니다.
 
 ## 해결 방안과 벌점 줄이기 팁 게시판
 
@@ -58,4 +68,5 @@ GitHub `main`에 push하면 Vercel이 자동 배포합니다. Vercel 프로젝�
 | `lib/score.ts` | 누적 점수·위험 단계·원인 분석·추세·상쇄 계획 계산 |
 | `lib/records.ts` · `lib/reasons.ts` | 기록 타입·입력값 검사 · 벌점 사유 기준표 |
 | `lib/db.ts` | Supabase 저장·불러오기 |
-| `lib/supabase.ts` · `lib/auth.ts` | Supabase 연결 · Google 로그인 |
+| `lib/supabase.ts` · `lib/auth.ts` | Supabase 연결 · 이메일/비밀번호 로그인·회원가입 |
+| `lib/profile.ts` · `app/account-section.tsx` | 계정 역할 · 선생님 신청(학생) / 승인(관리자) |

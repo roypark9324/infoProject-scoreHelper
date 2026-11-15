@@ -3,7 +3,7 @@
 // 로그인 여부에 따라 화면을 잠그는 껍데기.
 // - 로그인 안 됨: "로그인 후 이용 가능합니다" 카드 → 누르면 /login 으로 이동
 // - 로그인 됨: 원래 화면(children) + 로그아웃 버튼
-// 로그인 상태는 Supabase Auth(Google 로그인)가 관리한다. (차시 6)
+// 로그인 상태는 Supabase Auth(이메일/비밀번호)가 관리한다. (차시 6)
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 로그인 확인 전(서버가 처음 보내는 HTML)에도 서비스 소개와 방침 링크가 보이게 한다.
-  // Google이 홈페이지를 점검할 때는 자바스크립트를 실행하지 않아도 이 내용을 읽을 수 있어야 한다.
+  // 검색 엔진 등이 자바스크립트를 실행하지 않아도 이 내용을 읽을 수 있어야 한다.
   if (phase === "loading") {
     return (
       <div className="mx-auto w-full max-w-2xl px-4 py-8">

@@ -18,7 +18,8 @@ export default function PrivacyPage() {
 
       <h2 className="mt-8 text-base font-bold">1. 수집하는 정보</h2>
       <ul className="mt-2 list-disc pl-5">
-        <li>Google 로그인 때 Google이 알려 주는 이메일 주소와 이름(프로필)</li>
+        <li>회원가입 때 입력한 이메일 주소와 이름, 계정 역할(학생·선생님·관리자)과 선생님 신청 여부</li>
+        <li>비밀번호는 암호화되어 저장되며, 운영자도 원래 비밀번호를 알 수 없습니다.</li>
         <li>내가 직접 입력한 벌점·상점 기록(날짜, 구분, 사유, 점수, 메모), 목표 점수, 직접 등록한 활동</li>
         <li>상점 모집 글(선생님), 참여 신청(학생), 벌점 줄이기 팁과 ‘도움이 돼요’ 표시</li>
       </ul>
@@ -34,6 +35,7 @@ export default function PrivacyPage() {
         <li>내 벌점·상점 기록은 내 계정으로 로그인한 나만 볼 수 있습니다.</li>
         <li>상점 모집에 참여 신청을 하면, 그 글을 올린 선생님에게 내 이름과 이메일이 보입니다.</li>
         <li>모집 글에는 글을 올린 선생님의 이메일이 표시됩니다.</li>
+        <li>선생님 신청을 하면 관리자에게 내 이름과 이메일이 보입니다.</li>
         <li>팁은 이름 없이 ‘익명 학생’으로 다른 사용자에게 보입니다.</li>
         <li>서비스 운영자(개발자)는 데이터베이스 관리 화면에서 저장된 정보를 볼 수 있습니다. 운영·오류 확인 외의 목적으로 열람하지 않습니다.</li>
       </ul>
@@ -41,8 +43,7 @@ export default function PrivacyPage() {
       <h2 className="mt-8 text-base font-bold">4. 정보를 맡아 주는 서비스</h2>
       <p className="mt-2">서비스를 운영하기 위해 아래 외부 서비스를 사용하며, 필요한 범위에서만 정보가 전달됩니다.</p>
       <ul className="mt-2 list-disc pl-5">
-        <li>Google: 로그인</li>
-        <li>Supabase: 로그인 정보와 기록 저장(데이터베이스)</li>
+        <li>Supabase: 회원가입·로그인 정보와 기록 저장(데이터베이스)</li>
         <li>Vercel: 웹사이트 제공</li>
       </ul>
       <p className="mt-2">이 밖의 제3자에게 정보를 제공하거나 판매하지 않습니다.</p>

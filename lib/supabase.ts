@@ -25,21 +25,6 @@ export function createClient(): SupabaseClient {
   return browserClient;
 }
 
-/** Supabase에서 Google 로그인이 켜져 있는지. 확인하지 못하면 true로 보고 그냥 시도한다. */
-export async function isGoogleLoginEnabled(): Promise<boolean> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return false;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
-      headers: { apikey: SUPABASE_KEY },
-    });
-    if (!res.ok) return true;
-    const settings = await res.json();
-    return settings?.external?.google !== false;
-  } catch {
-    return true;
-  }
-}
-
 export type ConnectionResult = { ok: boolean; message: string };
 
 /** Supabase 서버에 실제로 요청을 보내 URL과 키가 맞는지 확인한다. */

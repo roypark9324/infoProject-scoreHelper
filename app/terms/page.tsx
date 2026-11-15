@@ -28,7 +28,10 @@ export default function TermsPage() {
       </p>
 
       <h2 className="mt-8 text-base font-bold">3. 계정</h2>
-      <p className="mt-2">Google 계정으로 로그인합니다. 선생님 권한은 서비스 운영자가 선생님 이메일을 등록한 계정에만 주어집니다.</p>
+      <p className="mt-2">
+        이메일과 비밀번호로 회원가입한 뒤 이용합니다. 가입하면 학생 계정이 되며, 선생님 권한은 선생님 신청을 하고 서비스
+        운영자(관리자)가 승인한 계정에만 주어집니다. 비밀번호는 본인이 관리하고 다른 사람에게 알려 주지 않습니다.
+      </p>
 
       <h2 className="mt-8 text-base font-bold">4. 이용자가 지킬 일</h2>
       <ul className="mt-2 list-disc pl-5">

@@ -4,7 +4,7 @@
 // - 선생님: "이 활동을 하면 상점 N점" 모집 글을 올리고, 들어온 신청을 인정/거절한다.
 //   (인정하면 신청한 학생의 상점 기록이 자동으로 생긴다.)
 // - 학생: 모집 중인 글을 보고 [참여 신청]을 누르고, 선생님이 인정하면 상점이 기록된다.
-// 누가 선생님인지는 DB의 teachers 목록으로 정해진다. (supabase/board.sql)
+// 누가 선생님인지는 DB의 계정 역할(profiles.role)로 정해진다. 신청·승인은 '내 계정'에서 한다. (supabase/accounts.sql)
 
 import { useCallback, useEffect, useState } from "react";
 import {

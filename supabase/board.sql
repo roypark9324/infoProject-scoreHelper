@@ -1,34 +1,9 @@
 -- 벌점 관리 도우미 - 상점 모집 게시판 (선생님이 모집 → 학생 신청 → 선생님 인정 → 상점 기록 자동 추가)
 -- 사용법: Supabase 대시보드 > SQL Editor > New query 에 이 파일 전체를 붙여 넣고 Run.
--- schema.sql을 먼저 실행한 뒤에 실행한다. 여러 번 실행해도 괜찮다.
+-- schema.sql, accounts.sql을 먼저 실행한 뒤에 실행한다. 여러 번 실행해도 괜찮다.
 --
--- 선생님 등록: 아래 한 줄을 SQL Editor에서 실행한다. (이메일은 소문자로)
---   insert into public.teachers (email) values ('teacher@example.com') on conflict do nothing;
--- 선생님 해제: delete from public.teachers where email = 'teacher@example.com';
-
--- ── 선생님 이메일 목록 ───────────────────────────────────────────
--- 정책을 만들지 않아 브라우저(Publishable key)에서는 읽을 수도 쓸 수도 없다.
--- 대시보드(SQL Editor / Table Editor)에서만 관리한다.
-create table if not exists public.teachers (
-  email text primary key check (email = lower(email))
-);
-alter table public.teachers enable row level security;
-revoke all on public.teachers from anon, authenticated;
-
--- 지금 로그인한 사용자가 선생님인지 (teachers 테이블을 직접 못 읽으므로 함수로만 확인)
-create or replace function public.is_teacher()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.teachers t where t.email = lower(auth.jwt() ->> 'email')
-  );
-$$;
-revoke all on function public.is_teacher() from public, anon;
-grant execute on function public.is_teacher() to authenticated;
+-- 누가 선생님인지는 accounts.sql의 is_teacher()가 판단한다.
+-- (회원가입 후 선생님 신청 → 관리자 승인. 예전 teachers 이메일 목록은 더 이상 쓰지 않는다.)
 
 -- ── 모집 글 (선생님만 작성, 로그인한 누구나 읽기) ─────────────────
 create table if not exists public.merit_posts (
