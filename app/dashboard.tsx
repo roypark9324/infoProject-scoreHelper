@@ -21,6 +21,7 @@ import OffsetPlan from "./offset-plan";
 import BoardSection from "./board-section";
 import TipsSection from "./tips-section";
 import FriendsSection from "./friends-section";
+import DshsImportSection from "./dshs-import-section";
 import NotificationBell from "./notification-bell";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
@@ -250,6 +251,11 @@ export default function Dashboard() {
           onAddActivity={handleAddActivity}
           onDeleteActivity={handleDeleteActivity}
         />
+      </div>
+
+      {/* ── dshs.app 내역 붙여 넣기 → 한 번에 기록으로 ── */}
+      <div className="mt-4">
+        <DshsImportSection records={records} onAdd={handleAddRecord} />
       </div>
 
       {/* ── 상점 모집 게시판: 누구나 모집 → 다른 사람이 신청 → 모집한 사람이 인정 ── */}
