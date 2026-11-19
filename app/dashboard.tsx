@@ -22,7 +22,6 @@ import BoardSection from "./board-section";
 import TipsSection from "./tips-section";
 import FriendsSection from "./friends-section";
 import NotificationBell from "./notification-bell";
-import ProfileSection from "./profile-section";
 import type { CommunityTip } from "@/lib/tips";
 import ConnectionStatus from "./connection-status";
 import LegalLinks from "./legal-links";
@@ -144,11 +143,6 @@ export default function Dashboard() {
         </div>
         <NotificationBell />
       </header>
-
-      {/* 내 프로필: 이름·학년·소개·사진 */}
-      <div className="mb-4">
-        <ProfileSection />
-      </div>
 
       {dbError && (
         <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
