@@ -16,7 +16,9 @@ import {
   type Friendship,
   type ScoreRow,
 } from "@/lib/friends";
+import { fetchProfiles, type Profile } from "@/lib/profiles";
 import { PERIOD_LABEL, periodStart, type Period } from "@/lib/score";
+import Avatar from "./avatar";
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : "알 수 없는 오류가 발생했습니다.";
@@ -28,9 +30,23 @@ function label(name: string, email: string): string {
 
 const RANK_PERIODS: Period[] = ["month", "year"];
 
+/** 나와 수락된 친구의 프로필. 프로필 DB가 아직 없어도 친구 기능은 그대로 쓰도록 실패하면 빈 값을 돌려준다. */
+async function loadProfiles(friends: FriendsData): Promise<Record<string, Profile>> {
+  const ids = [friends.userId];
+  for (const f of friends.friendships) {
+    if (f.status === "accepted") ids.push(f.requesterId === friends.userId ? f.addresseeId : f.requesterId);
+  }
+  try {
+    return await fetchProfiles(ids);
+  } catch {
+    return {};
+  }
+}
+
 export default function FriendsSection() {
   const [data, setData] = useState<FriendsData | null>(null);
   const [scores, setScores] = useState<ScoreRow[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [period, setPeriod] = useState<Period>("month");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,17 +55,21 @@ export default function FriendsSection() {
 
   const load = useCallback(async (p: Period) => {
     const [friends, rows] = await Promise.all([fetchFriends(), fetchScores(periodStart(p))]);
+    const found = await loadProfiles(friends);
     setData(friends);
     setScores(rows);
+    setProfiles(found);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([fetchFriends(), fetchScores(periodStart(period))])
-      .then(([friends, rows]) => {
+      .then(async ([friends, rows]) => {
+        const found = await loadProfiles(friends);
         if (cancelled) return;
         setData(friends);
         setScores(rows);
+        setProfiles(found);
       })
       .catch((e) => !cancelled && setError(errorMessage(e)));
     return () => {
@@ -91,10 +111,10 @@ export default function FriendsSection() {
   const outgoing = (data?.friendships ?? []).filter((f) => f.status === "pending" && f.requesterId === userId);
   const accepted = (data?.friendships ?? []).filter((f) => f.status === "accepted");
 
-  function friendOf(f: Friendship): { name: string; email: string } {
+  function friendOf(f: Friendship): { id: string; name: string; email: string } {
     return f.requesterId === userId
-      ? { name: f.addresseeName, email: f.addresseeEmail }
-      : { name: f.requesterName, email: f.requesterEmail };
+      ? { id: f.addresseeId, name: f.addresseeName, email: f.addresseeEmail }
+      : { id: f.requesterId, name: f.requesterName, email: f.requesterEmail };
   }
 
   const best = scores.length > 0 ? scores[0].net : 0;
@@ -153,10 +173,13 @@ export default function FriendsSection() {
                       me ? "border-blue-200 bg-blue-50/50" : "border-neutral-200"
                     }`}
                   >
-                    <span className="min-w-0 truncate">
-                      <b className="mr-2 text-neutral-400">{i + 1}위</b>
-                      {me ? "나" : label(row.name, row.email)}
-                      {leader && <span className="ml-2" aria-label="1등">🏆</span>}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <b className="shrink-0 text-neutral-400">{i + 1}위</b>
+                      <Avatar url={profiles[row.userId]?.avatarUrl ?? null} name={profiles[row.userId]?.displayName || row.name || row.email} size={28} />
+                      <span className="min-w-0 truncate">
+                        {me ? "나" : profiles[row.userId]?.displayName || label(row.name, row.email)}
+                        {leader && <span className="ml-2" aria-label="1등">🏆</span>}
+                      </span>
                     </span>
                     <span className="shrink-0 font-bold">{row.net}점</span>
                   </li>
@@ -241,9 +264,19 @@ export default function FriendsSection() {
               <ul className="mt-2 grid gap-1.5">
                 {accepted.map((f) => {
                   const other = friendOf(f);
+                  const p = profiles[other.id];
                   return (
                     <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="min-w-0 truncate">{label(other.name, other.email)}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Avatar url={p?.avatarUrl ?? null} name={p?.displayName || other.name || other.email} size={36} />
+                        <span className="min-w-0">
+                          <span className="block truncate">
+                            {p?.displayName || label(other.name, other.email)}
+                            {p?.grade && <span className="ml-2 text-xs text-neutral-400">{p.grade}학년</span>}
+                          </span>
+                          {p?.bio && <span className="block truncate text-xs text-neutral-500">{p.bio}</span>}
+                        </span>
+                      </span>
                       <button
                         type="button"
                         disabled={busy}
