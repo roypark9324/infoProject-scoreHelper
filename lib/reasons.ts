@@ -27,6 +27,12 @@ export interface Reason {
   category: ReasonCategory;
 }
 
+/** 기준표에 없는 사유를 직접 적을 때 select에서 고르는 값 (REASONS의 id와 겹치지 않는다) */
+export const CUSTOM_REASON_ID = "custom";
+
+/** 직접 적는 사유 이름의 최대 길이 */
+export const MAX_CUSTOM_REASON_LENGTH = 40;
+
 export const KIND_LABEL: Record<ReasonKind, string> = {
   penalty: "벌점",
   merit: "상점(감면)",

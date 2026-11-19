@@ -9,7 +9,9 @@
 
 import { useState } from "react";
 import {
+  CUSTOM_REASON_ID,
   KIND_LABEL,
+  MAX_CUSTOM_REASON_LENGTH,
   REASONS,
   getReason,
   type MeritActivity,
@@ -29,6 +31,7 @@ const EMPTY_DRAFT: RecordDraft = {
   date: todayISO(),
   kind: "penalty",
   reasonId: "",
+  customReason: "",
   points: "",
   memo: "",
 };
@@ -59,6 +62,7 @@ export default function RecordsSection({
   const [activityErrors, setActivityErrors] = useState<string[]>([]);
 
   const isMerit = draft.kind === "merit";
+  const isCustom = draft.reasonId === CUSTOM_REASON_ID;
   // 벌점은 기준표에서, 상점은 등록한 모집 활동에서 고른다.
   const options = isMerit
     ? activities.map((a) => ({ id: a.id, text: `${a.name} (${a.points}점)` }))
@@ -79,12 +83,12 @@ export default function RecordsSection({
 
   // 구분을 바꾸면 사유 목록이 달라지므로 사유·점수를 초기화한다.
   function handleKindChange(kind: ReasonKind) {
-    setDraft((prev) => ({ ...prev, kind, reasonId: "", points: "" }));
+    setDraft((prev) => ({ ...prev, kind, reasonId: "", customReason: "", points: "" }));
   }
 
-  // 사유를 고르면 기본 배점을 점수 칸에 자동으로 채운다.
+  // 사유를 고르면 기본 배점을 점수 칸에 자동으로 채운다. '직접 입력'이면 점수도 직접 적도록 비워 둔다.
   function handleReasonChange(reasonId: string) {
-    const reason = findReason(draft.kind, reasonId);
+    const reason = reasonId === CUSTOM_REASON_ID ? undefined : findReason(draft.kind, reasonId);
     setDraft((prev) => ({
       ...prev,
       reasonId,
@@ -117,14 +121,15 @@ export default function RecordsSection({
     onAdd(record);
     setErrors([]);
     // 날짜·구분은 유지하고 사유·점수·메모만 비운다 (연속 입력 편하게).
-    setDraft((prev) => ({ ...prev, reasonId: "", points: "", memo: "" }));
+    setDraft((prev) => ({ ...prev, reasonId: "", customReason: "", points: "", memo: "" }));
   }
 
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
       <h2 className="text-sm font-bold">기록 입력</h2>
       <p className="mt-1 text-xs text-neutral-500">
-        받은 벌점·상점을 한 건씩 입력하세요. 사유를 고르면 기준 점수가 자동으로 채워집니다.
+        받은 벌점·상점을 한 건씩 입력하세요. 사유를 고르면 기준 점수가 자동으로 채워지고, 목록에 없으면 ‘직접 입력’으로
+        사유와 점수를 직접 적을 수 있어요.
         상점은 아래 ‘상점 모집 게시판’에서 신청해 인정받거나, 활동을 직접 등록해 기록할 수 있어요.
       </p>
 
@@ -253,7 +258,7 @@ export default function RecordsSection({
           >
             <option value="">
               {isMerit && activities.length === 0
-                ? "먼저 위에서 모집 활동을 등록하세요"
+                ? "활동을 선택하거나 ‘직접 입력’을 고르세요"
                 : isMerit
                   ? "한 활동을 선택하세요"
                   : "사유를 선택하세요"}
@@ -263,8 +268,24 @@ export default function RecordsSection({
                 {o.text}
               </option>
             ))}
+            <option value={CUSTOM_REASON_ID}>✏️ 직접 입력</option>
           </select>
         </label>
+
+        {/* 사유 직접 입력 */}
+        {isCustom && (
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-neutral-700">{isMerit ? "한 활동 이름" : "사유 직접 입력"}</span>
+            <input
+              type="text"
+              value={draft.customReason}
+              maxLength={MAX_CUSTOM_REASON_LENGTH}
+              placeholder={isMerit ? "예: 도서관 정리 돕기" : "예: 수업 중 휴대폰 사용"}
+              onChange={(e) => update("customReason", e.target.value)}
+              className="rounded-lg border border-neutral-200 px-3 py-2"
+            />
+          </label>
+        )}
 
         {/* 점수 */}
         <label className="grid gap-1 text-sm">
@@ -274,13 +295,13 @@ export default function RecordsSection({
             inputMode="decimal"
             min={0.5}
             step={0.5}
-            placeholder="사유를 고르면 자동 입력됩니다"
+            placeholder={isCustom ? "점수를 직접 입력하세요" : "사유를 고르면 자동 입력됩니다"}
             value={draft.points}
             onChange={(e) => update("points", e.target.value)}
             className="rounded-lg border border-neutral-200 px-3 py-2"
           />
           <span className="text-xs text-neutral-400">
-            기준과 다르게 받았을 때만 직접 고치세요.
+            {isCustom ? "0.5점 단위로 입력하세요. (최대 100점)" : "기준과 다르게 받았을 때만 직접 고치세요."}
           </span>
         </label>
 
